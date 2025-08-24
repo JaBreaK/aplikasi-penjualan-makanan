@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model kategori {
+  id            Int      @id @default(autoincrement())
+  nama_kategori String   @db.VarChar(100)
+  produk        produk[]
+}
+
+model metodepembayaran {
+  id          Int          @id @default(autoincrement())
+  nama_metode String       @db.VarChar(100)
+  is_active   Boolean?     @default(true)
+  pembayaran  pembayaran[]
+}
+
+model orderitems {
+  id        Int    @id @default(autoincrement())
+  order_id  Int
+  produk_id Int
+  jumlah    Int
+  subtotal  Int
+  orders    orders @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "orderitems_ibfk_1")
+  produk    produk @relation(fields: [produk_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "orderitems_ibfk_2")
+
+  @@index([order_id], map: "order_id")
+  @@index([produk_id], map: "produk_id")
+}
+
+model orders {
+  id                Int                       @id @default(autoincrement())
+  waktu_order       DateTime                  @default(now()) @db.Timestamp(0)
+  nama_pelanggan    String                    @db.VarChar(100)
+  nomor_wa          String                    @db.VarChar(20)
+  total_harga       Int
+  status_pembayaran orders_status_pembayaran? @default(BELUM_BAYAR)
+  orderitems        orderitems[]
+  pembayaran        pembayaran[]
+}
+
+model pembayaran {
+  id               Int                @id @default(autoincrement())
+  order_id         Int
+  metode_id        Int
+  jumlah_bayar     Int
+  waktu_bayar      DateTime           @default(now()) @db.Timestamp(0)
+  status           pembayaran_status? @default(PENDING)
+  kode_referensi   String?            @db.VarChar(255)
+  orders           orders             @relation(fields: [order_id], references: [id], onUpdate: Restrict, map: "pembayaran_ibfk_1")
+  metodepembayaran metodepembayaran   @relation(fields: [metode_id], references: [id], onUpdate: Restrict, map: "pembayaran_ibfk_2")
+
+  @@index([metode_id], map: "metode_id")
+  @@index([order_id], map: "order_id")
+}
+
+model produk {
+  id          Int          @id @default(autoincrement())
+  nama_produk String       @db.VarChar(255)
+  deskripsi   String?      @db.Text
+  harga       Int
+  gambar_url  String?      @db.VarChar(255)
+  kategori_id Int?
+  orderitems  orderitems[]
+  kategori    kategori?    @relation(fields: [kategori_id], references: [id], onUpdate: Restrict, map: "produk_ibfk_1")
+
+  @@index([kategori_id], map: "kategori_id")
+}
+
+enum orders_status_pembayaran {
+  BELUM_BAYAR
+  LUNAS
+  BATAL
+}
+
+enum pembayaran_status {
+  PENDING
+  SUCCESS
+  FAILED
+}
