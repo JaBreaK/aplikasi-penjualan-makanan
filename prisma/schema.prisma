@@ -18,6 +18,9 @@ model metodepembayaran {
   id          Int          @id @default(autoincrement())
   nama_metode String       @db.VarChar(100)
   is_active   Boolean?     @default(true)
+  nomor_rekening  String?      // Untuk menyimpan nomor rekening
+  nama_rekening   String?      // Untuk nama pemilik rekening
+  gambar_qris_url String?      // Untuk URL gambar QRIS
   pembayaran  pembayaran[]
 }
 

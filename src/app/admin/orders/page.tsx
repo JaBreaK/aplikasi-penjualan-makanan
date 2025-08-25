@@ -21,7 +21,7 @@ type MetodePembayaran = {
 type pembayaran = {
   id: number;
   status: string;
-  metodePembayaran: MetodePembayaran;
+  metodepembayaran: MetodePembayaran;
   bukti_pembayaran_url: string ;
 };
 
@@ -138,6 +138,12 @@ export default function OrdersPage() {
                 <div>
                   <h3 className="font-semibold">Pelanggan:</h3>
                   <p>{order.nama_pelanggan} ({order.nomor_wa})</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold">Metode Pembayaran:</h3>
+                  <p className="font-medium text-blue-600">
+                    {pembayaranTerbaru?.metodepembayaran?.nama_metode || 'N/A'}
+                  </p>
                 </div>
                 {/* BAGIAN BARU UNTUK METODE PEMBAYARAN */}
                 <div>

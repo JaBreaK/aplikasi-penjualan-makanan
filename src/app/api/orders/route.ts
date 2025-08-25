@@ -49,29 +49,27 @@ type CartItemClient = {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { cartItems,
-       nama_pelanggan, nomor_wa,
-        total_harga,
-         catatan_pelanggan } : {cartItems : CartItemClient[],
+    const { 
+          cartItems,
+          nama_pelanggan, 
+          nomor_wa,
+          total_harga,
+          catatan_pelanggan,
+          metode_pembayaran_id 
+        } : {cartItems : CartItemClient[],
           nama_pelanggan: string,
           nomor_wa: string,
           total_harga: number,
-          catatan_pelanggan?: string
+          catatan_pelanggan?: string,
+          metode_pembayaran_id : number
         } = body;
 
     // Validasi data yang masuk
-    if (!cartItems || cartItems.length === 0 || !nama_pelanggan || !nomor_wa) {
+    if (!cartItems || cartItems.length === 0 || !nama_pelanggan || !nomor_wa || !metode_pembayaran_id) {
       return NextResponse.json({ message: "Data tidak lengkap" }, { status: 400 });
     }
 
-    // Cari metode pembayaran pertama yang aktif untuk dijadikan default
-    const defaultMetodePembayaran = await db.metodepembayaran.findFirst({
-      where: { is_active: true },
-    });
-
-    if (!defaultMetodePembayaran) {
-      return NextResponse.json({ message: "Tidak ada metode pembayaran yang aktif." }, { status: 500 });
-    }
+  
 
     const createdOrder = await db.$transaction(async (prisma) => {
       // 1. Buat catatan di tabel Orders
@@ -98,7 +96,7 @@ export async function POST(request: Request) {
       await prisma.pembayaran.create({
           data: {
               order_id: newOrder.id,
-              metode_id: defaultMetodePembayaran.id, // Gunakan ID default
+              metode_id: metode_pembayaran_id, // Gunakan ID default
               jumlah_bayar: total_harga,
               status: 'PENDING'
           }

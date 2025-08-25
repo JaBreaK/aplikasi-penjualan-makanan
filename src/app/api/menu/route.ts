@@ -1,8 +1,7 @@
 // src/app/api/menu/route.ts
 import { db } from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { writeFile } from 'fs/promises'; // Import modul untuk menulis file
-import path from 'path'; // Import modul untuk path
+import { supabase } from "@/lib/supabase";
 
 export async function POST(request: Request) {
   try {
@@ -25,16 +24,25 @@ export async function POST(request: Request) {
 
     // Buat nama file unik untuk menghindari duplikasi
     const namaFile = Date.now() + "_" + gambar.name;
-    // Tentukan path untuk menyimpan file di folder public
-    const dirPath = path.join(process.cwd(), 'public/uploads');
-    const filePath = path.join(dirPath, namaFile);
+    // UPLOAD KE SUPABASE, BUKAN KE FOLDER PUBLIC
+    const {  error: uploadError } = await supabase.storage
+      .from('uploads') // Nama bucket
+      .upload(namaFile, buffer, {
+        contentType: gambar.type,
+      });
 
-    // Tulis file ke direktori
-    await writeFile(filePath, buffer);
-    console.log(`File tersimpan di: ${filePath}`);
+    if (uploadError) {
+      throw new Error(`Gagal upload ke Supabase: ${uploadError.message}`);
+    }
 
-    // Buat URL publik yang akan disimpan di database
-    const gambar_url = `/uploads/${namaFile}`;
+    // Ambil URL publik dari gambar yang baru diupload
+    const { data: publicUrlData } = supabase.storage
+      .from('uploads')
+      .getPublicUrl(namaFile);
+    
+    const gambar_url = publicUrlData.publicUrl;
+
+    // Simpan URL dari Supabase ke database Prisma
 
     // Simpan data ke database
     const newProduk = await db.produk.create({

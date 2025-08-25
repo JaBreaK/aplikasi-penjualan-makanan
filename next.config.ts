@@ -9,6 +9,10 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'hhfjdkifsrugdgvfrciw.supabase.co', // Ganti dengan hostname Supabase-mu
+      },
     ],
   },
 };

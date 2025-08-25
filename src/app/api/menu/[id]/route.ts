@@ -1,16 +1,15 @@
 // src/app/api/menu/[id]/route.ts
 import { db } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile } from 'fs/promises';
-import path from 'path';
+import { supabase } from "@/lib/supabase"; // <-- Import Supabase
 
-
+// Definisikan tipe data untuk update
 interface DataToUpdate {
   nama_produk: string;
   deskripsi: string;
   harga: number;
   kategori_id: number;
-  gambar_url?: string; // Tanda tanya (?) berarti properti ini opsional
+  gambar_url?: string;
 }
 
 /**
@@ -30,7 +29,6 @@ export async function GET(
     if (!produk) {
       return NextResponse.json({ message: "Produk tidak ditemukan" }, { status: 404 });
     }
-
     return NextResponse.json(produk, { status: 200 });
   } catch (error) {
     console.error("Error fetching produk:", error);
@@ -42,7 +40,7 @@ export async function GET(
 }
 
 /**
- * Meng-UPDATE data produk berdasarkan ID-nya.
+ * Meng-UPDATE data produk berdasarkan ID-nya (menggunakan Supabase Storage).
  */
 export async function PUT(
   request: NextRequest,
@@ -53,7 +51,6 @@ export async function PUT(
     const numericId = parseInt(id);
     const data = await request.formData();
 
-    // ... (sisa logika PUT tidak berubah, pastikan sudah benar)
     const nama_produk = data.get('nama_produk') as string;
     const deskripsi = data.get('deskripsi') as string;
     const harga = data.get('harga') as string;
@@ -62,13 +59,30 @@ export async function PUT(
 
     let gambar_url: string | undefined = undefined;
 
+    // Cek jika ada gambar baru yang diupload
     if (gambar) {
       const bytes = await gambar.arrayBuffer();
       const buffer = Buffer.from(bytes);
-      const namaFile = Date.now() + "_" + gambar.name;
-      const filePath = path.join(process.cwd(), 'public/uploads', namaFile);
-      await writeFile(filePath, buffer);
-      gambar_url = `/uploads/${namaFile}`;
+      const namaFile = `produk_${numericId}_${Date.now()}`;
+
+      // UPLOAD KE SUPABASE
+      const { error: uploadError } = await supabase.storage
+        .from('uploads') // Pastikan nama bucket benar
+        .upload(namaFile, buffer, {
+          contentType: gambar.type,
+          upsert: true,
+        });
+
+      if (uploadError) {
+        throw new Error(`Gagal upload ke Supabase: ${uploadError.message}`);
+      }
+      
+      // Ambil URL publik dari Supabase
+      const { data: publicUrlData } = supabase.storage
+        .from('uploads')
+        .getPublicUrl(namaFile);
+      
+      gambar_url = publicUrlData.publicUrl;
     }
 
     const dataToUpdate: DataToUpdate = {
@@ -92,7 +106,7 @@ export async function PUT(
   } catch (error) {
     console.error("Error updating produk:", error);
     return NextResponse.json(
-      { message: "Terjadi kesalahan saat mengupdate data" },
+      { message: "Terjadi kesalahan saat mengupdate data", error: (error as Error).message },
       { status: 500 }
     );
   }

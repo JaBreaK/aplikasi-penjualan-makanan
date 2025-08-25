@@ -1,8 +1,7 @@
 // src/app/api/konfirmasi-pembayaran/[orderId]/route.ts
 import { db } from "@/lib/prisma";
 import { NextResponse, NextRequest } from "next/server";
-import { writeFile } from "fs/promises";
-import path from "path";
+import { supabase } from "@/lib/supabase";
 
 export async function POST(
     request: NextRequest,
@@ -22,12 +21,25 @@ export async function POST(
     const buffer = Buffer.from(bytes);
 
     const namaFile = Date.now() + "_" + gambar.name;
-    const dirPath = path.join(process.cwd(), "public/bukti-pembayaran");
-    const filePath = path.join(dirPath, namaFile);
+    // UPLOAD KE SUPABASE, BUKAN KE FOLDER PUBLIC
+    const { error: uploadError } = await supabase.storage
+      .from('bukti-pembayaran') // Nama bucket
+      .upload(namaFile, buffer, {
+        contentType: gambar.type,
+      });
 
-    await writeFile(filePath, buffer);
+    if (uploadError) {
+      throw new Error(`Gagal upload ke Supabase: ${uploadError.message}`);
+    }
 
-    const gambar_url = `/bukti-pembayaran/${namaFile}`;
+    // Ambil URL publik dari gambar yang baru diupload
+    const { data: publicUrlData } = supabase.storage
+      .from('bukti-pembayaran')
+      .getPublicUrl(namaFile);
+    
+    const gambar_url = publicUrlData.publicUrl;
+
+    // Simpan URL dari Supabase ke database Prisma
 
     // Cari pembayaran yang terkait dengan order ini
     const pembayaran = await db.pembayaran.findFirst({

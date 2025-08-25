@@ -14,11 +14,28 @@ export async function PATCH(
 
     const { 
       status_pembayaran, 
-      keterangan_batal 
+      keterangan_batal,
+      metode_pembayaran_id 
   }: { 
       status_pembayaran: orders_status_pembayaran, 
-      keterangan_batal?: string 
+      keterangan_batal?: string ,
+      metode_pembayaran_id?: number
   } = body;
+
+  // Jika ada permintaan untuk mengubah metode pembayaran
+    if (metode_pembayaran_id) {
+        const pembayaranTerbaru = await db.pembayaran.findFirst({
+            where: { order_id: numericId },
+            orderBy: { waktu_bayar: 'desc' }
+        });
+
+        if (pembayaranTerbaru) {
+            await db.pembayaran.update({
+                where: { id: pembayaranTerbaru.id },
+                data: { metode_id: metode_pembayaran_id }
+            });
+        }
+    }
 
     // Siapkan data yang akan diupdate
     const dataToUpdate: {
@@ -51,26 +68,30 @@ export async function PATCH(
   }
 }
 // GET (baru)
-export async function GET(request: NextRequest, 
-  context: { params: Promise<{ id: string }> }) {
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
-    const { id } = await context.params; // <-- TAMBAHKAN 'await' DI SINI
+    const { id } = await context.params;
     const numericId = parseInt(id);
     
-    // AMBIL NOMOR WA DARI URL QUERY (misal: /api/orders/1?nomorWa=0812...)
     const { searchParams } = new URL(request.url);
     const nomorWa = searchParams.get('nomorWa');
 
-    // Jika tidak ada nomor WA yang dikirim, tolak permintaan
-    if (!nomorWa) {
-        return NextResponse.json({ message: "Akses ditolak: Nomor WA diperlukan" }, { status: 401 });
-    }
+    // Buat objek 'where' dasar
+    const whereClause: { id: number; nomor_wa?: string } = {
+      id: numericId
+    };
 
-    // Cari pesanan yang ID DAN NOMOR WA-nya cocok
+    // JIKA ADA nomorWa, tambahkan ke kondisi (untuk verifikasi pelanggan)
+    if (nomorWa) {
+      whereClause.nomor_wa = nomorWa;
+    }
+    // JIKA TIDAK ADA nomorWa, biarkan kosong (untuk akses admin)
+
     const order = await db.orders.findUnique({
-      where: { id: numericId,
-        nomor_wa: nomorWa // <-- KONDISI PENTING DITAMBAHKAN DI SINI
-      },
+      where: whereClause, // Gunakan objek 'where' yang sudah kita siapkan
       include: {
         orderitems: { include: { produk: true } },
         pembayaran: {
@@ -85,8 +106,11 @@ export async function GET(request: NextRequest,
     }
     
     return NextResponse.json(order);
-  } catch (error) {
-    console.error("Gagal mengambil:", error); 
+  } catch (error: unknown) {
+    console.error("Gagal mengambil data pesanan:", error);
+    if (error instanceof Error) {
+        return NextResponse.json({ message: error.message }, { status: 500 });
+    }
     return NextResponse.json({ message: "Gagal mengambil data pesanan" }, { status: 500 });
   }
 }

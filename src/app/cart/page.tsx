@@ -5,10 +5,18 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+type MetodePembayaran = {
+    id: number;
+    nama_metode: string;
+    is_active: boolean;
+  };
+
 export default function CartPage() {
     const { cartItems, addToCart, removeFromCart, clearCart } = useCart();
   const router = useRouter();
 
+  const [metodeList, setMetodeList] = useState<MetodePembayaran[]>([]);
+  const [metodeId, setMetodeId] = useState("");
   const [nama, setNama] = useState("");
   const [nomorWa, setNomorWa] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -22,10 +30,26 @@ export default function CartPage() {
     if (savedNomorWa) setNomorWa(savedNomorWa);
   }, []);
 
+  // Ambil daftar metode pembayaran yang aktif
+  useEffect(() => {
+    const fetchMetode = async () => {
+      const response = await fetch('/api/metode-pembayaran');
+      if (response.ok) {
+        const data = await response.json();
+        setMetodeList(data.filter((metode: MetodePembayaran) => metode.is_active));
+      }
+    };
+    fetchMetode();
+  }, []);
+
   const totalHarga = cartItems.reduce((total, item) => total + item.harga * item.jumlah, 0);
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!metodeId) {
+        alert("Silakan pilih metode pembayaran terlebih dahulu.");
+        return;
+    }
     setIsLoading(true);
     setMessage("");
 
@@ -42,6 +66,7 @@ export default function CartPage() {
           nomor_wa: nomorWa,
           total_harga: totalHarga, // Kirim total harga dari frontend
           catatan_pelanggan: catatan,
+          metode_pembayaran_id: parseInt(metodeId),
         }),
       });
 
@@ -117,6 +142,20 @@ export default function CartPage() {
                         <label className="block mb-1 font-semibold">Nomor WhatsApp</label>
                         <input type="text" value={nomorWa} onChange={(e) => setNomorWa(e.target.value)} className="p-2 border rounded w-full" placeholder="Contoh: 08123456789" required />
                     </div>
+                    <div>
+              <label className="block mb-1 font-semibold">Pilih Metode Pembayaran</label>
+              <select
+                value={metodeId}
+                onChange={(e) => setMetodeId(e.target.value)}
+                className="p-2 border rounded w-full bg-white"
+                required
+              >
+                <option value="" disabled>-- Pilih Opsi --</option>
+                {metodeList.map(metode => (
+                  <option key={metode.id} value={metode.id}>{metode.nama_metode}</option>
+                ))}
+              </select>
+            </div>
                     <div>
                       <label className="block mb-1 font-semibold">Catatan untuk Penjual (Opsional)</label>
                       <textarea

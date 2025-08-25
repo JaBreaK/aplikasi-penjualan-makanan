@@ -3,8 +3,15 @@
 import { useEffect, useState, FormEvent, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image"; // <-- Pastikan Image di-import
 
 // Gabungkan Tipe Data
+type MetodePembayaran = {
+    nama_metode: string;
+    nomor_rekening: string | null;
+    nama_rekening: string | null;
+    gambar_qris_url: string | null;
+};
 type Order = {
     id: number;
     status_pembayaran: string;
@@ -14,6 +21,9 @@ type Order = {
     orderitems: {
         jumlah: number;
         produk: { nama_produk: string };
+    }[];
+    pembayaran: {
+        metodepembayaran: MetodePembayaran;
     }[];
 };
 
@@ -108,6 +118,8 @@ export default function PesananDetailPage() {
     if (isLoading) return <p className="p-8 text-center">Memuat pesanan...</p>;
     if (!order) return <p className="p-8 text-center">Pesanan tidak ditemukan atau Anda tidak memiliki akses.</p>;
 
+    const metodepembayaran = order.pembayaran?.[0]?.metodepembayaran;
+
     return (
         <main className="container mx-auto p-8 flex justify-center bg-gray-50 min-h-screen">
             <div className="bg-white p-8 rounded-lg shadow-lg max-w-2xl w-full h-fit">
@@ -150,10 +162,24 @@ export default function PesananDetailPage() {
                     <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
                          <h2 className="text-xl font-bold mb-4">Instruksi Pembayaran</h2>
                          <p className="mb-2">Silakan lakukan pembayaran sejumlah total pesanan ke salah satu metode di bawah ini:</p>
-                     <ul className="list-disc list-inside space-y-1">
-                        <li><span className="font-semibold">BCA:</span> 123-456-7890 a.n. Restoran Enak</li>
-                        <li><span className="font-semibold">QRIS:</span> (Tampilkan gambar QRIS di sini jika ada)</li>
-                     </ul>
+                         {metodepembayaran ? (
+                            <div className="p-4 bg-white rounded-md border">
+                                <p className="font-bold text-lg">{metodepembayaran.nama_metode}</p>
+                                {metodepembayaran.nomor_rekening && (
+                                    <p className="mt-1">Nomor: <strong className="text-lg">{metodepembayaran.nomor_rekening}</strong></p>
+                                )}
+                                {metodepembayaran.nama_rekening && (
+                                    <p>A/N: <strong>{metodepembayaran.nama_rekening}</strong></p>
+                                )}
+                                {metodepembayaran.gambar_qris_url && (
+                                    <div className="mt-2">
+                                        <Image src={metodepembayaran.gambar_qris_url} alt={`QRIS ${metodepembayaran.nama_metode}`} width={200} height={200} className="rounded-md"/>
+                                    </div>
+                                )}
+                            </div>
+                         ) : (
+                            <p>Metode pembayaran tidak ditemukan.</p>
+                         )}
                      <p className="mt-4 font-semibold text-red-600">PENTING: Setelah melakukan pembayaran, upload bukti transfer di bawah ini.</p>
 
                          <form onSubmit={handleUpload} className="mt-6">
