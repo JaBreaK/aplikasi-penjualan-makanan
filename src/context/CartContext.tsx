@@ -2,7 +2,6 @@
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 
-// Definisikan bentuk dari item di keranjang
 type CartItem = {
   id: number;
   nama_produk: string;
@@ -10,29 +9,23 @@ type CartItem = {
   jumlah: number;
 };
 
-// Definisikan apa saja yang akan disediakan oleh Context
 type CartContextType = {
   cartItems: CartItem[];
   addToCart: (item: Omit<CartItem, 'jumlah'>) => void;
-  // Nanti kita akan tambah fungsi lain seperti removeFromCart, dll.
+  removeFromCart: (itemId: number, removeOne?: boolean) => void;
+  clearCart: () => void;
 };
 
-// Buat Context-nya
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-// Buat komponen Provider
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-  // Efek untuk memuat data dari Local Storage saat pertama kali dibuka
   useEffect(() => {
     const storedCart = localStorage.getItem('cart');
-    if (storedCart) {
-      setCartItems(JSON.parse(storedCart));
-    }
+    if (storedCart) setCartItems(JSON.parse(storedCart));
   }, []);
 
-  // Efek untuk menyimpan data ke Local Storage setiap kali keranjang berubah
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cartItems));
   }, [cartItems]);
@@ -41,24 +34,40 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setCartItems(prevItems => {
       const existingItem = prevItems.find(item => item.id === itemToAdd.id);
       if (existingItem) {
-        // Jika item sudah ada, tambah jumlahnya
         return prevItems.map(item =>
           item.id === itemToAdd.id ? { ...item, jumlah: item.jumlah + 1 } : item
         );
       }
-      // Jika item baru, tambahkan ke keranjang dengan jumlah 1
       return [...prevItems, { ...itemToAdd, jumlah: 1 }];
     });
   };
 
+  const removeFromCart = (itemId: number, removeOne: boolean = false) => {
+    setCartItems(prevItems => {
+      const existingItem = prevItems.find(item => item.id === itemId);
+      if (existingItem && existingItem.jumlah > 1 && removeOne) {
+        // Kurangi jumlah jika item lebih dari 1
+        return prevItems.map(item =>
+          item.id === itemId ? { ...item, jumlah: item.jumlah - 1 } : item
+        );
+      } else {
+        // Hapus item sepenuhnya dari keranjang
+        return prevItems.filter(item => item.id !== itemId);
+      }
+    });
+  };
+
+  const clearCart = () => {
+    setCartItems([]);
+  };
+
   return (
-    <CartContext.Provider value={{ cartItems, addToCart }}>
+    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, clearCart }}>
       {children}
     </CartContext.Provider>
   );
 };
 
-// Buat custom hook agar lebih mudah digunakan
 export const useCart = () => {
   const context = useContext(CartContext);
   if (context === undefined) {

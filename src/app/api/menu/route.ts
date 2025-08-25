@@ -63,6 +63,7 @@ export async function GET() {
     });
     return NextResponse.json(produk, { status: 200 });
   } catch (error) {
+    console.error("Gagal mengambil Produk:", error);
     return NextResponse.json({ message: "Error fetching produk" }, { status: 500 });
   }
 }

@@ -1,31 +1,56 @@
 // src/app/api/kategori/[id]/route.ts
 import { db } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-// PUT (untuk edit)
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+/**
+ * Meng-UPDATE kategori berdasarkan ID.
+ */
+export async function PUT(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> } // <-- Perhatikan: 'params' sekarang adalah 'Promise'
+) {
   try {
-    const id = parseInt(params.id);
+    const { id } = await context.params; // <-- TAMBAHKAN 'await' DI SINI
+    const numericId = parseInt(id);
     const body = await request.json();
     const { nama_kategori } = body;
+
     const updatedKategori = await db.kategori.update({
-      where: { id },
+      where: { id: numericId },
       data: { nama_kategori },
     });
+
     return NextResponse.json(updatedKategori);
   } catch (error) {
-    return NextResponse.json({ message: "Gagal mengupdate data" }, { status: 500 });
+    console.error("Gagal mengupdate data:", error);
+    return NextResponse.json(
+      { message: "Terjadi kesalahan saat mengupdate data" },
+      { status: 500 }
+    );
   }
 }
 
-// DELETE
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+/**
+ * Menghapus kategori berdasarkan ID.
+ */
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> } // <-- Perhatikan: 'params' sekarang adalah 'Promise'
+) {
   try {
-    const id = parseInt(params.id);
-    await db.kategori.delete({ where: { id } });
+    const { id } = await context.params; // <-- TAMBAHKAN 'await' DI SINI
+    const numericId = parseInt(id);
+
+    await db.kategori.delete({
+      where: { id: numericId },
+    });
+
     return NextResponse.json({ message: "Data berhasil dihapus" });
   } catch (error) {
-    // Handle error jika kategori masih digunakan oleh produk
-    return NextResponse.json({ message: "Gagal menghapus: Kategori masih digunakan oleh produk." }, { status: 400 });
+    console.error("Gagal menghapus data:", error);
+    return NextResponse.json(
+      { message: "Gagal menghapus: Kategori mungkin masih digunakan oleh produk." },
+      { status: 400 }
+    );
   }
 }

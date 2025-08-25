@@ -8,6 +8,7 @@ export async function GET() {
     const methods = await db.metodepembayaran.findMany();
     return NextResponse.json(methods);
   } catch (error) {
+    console.error("Gagal mengambil metode pembayaran:", error);
     return NextResponse.json({ message: "Gagal mengambil data" }, { status: 500 });
   }
 }
@@ -25,6 +26,7 @@ export async function POST(request: Request) {
     });
     return NextResponse.json(newMethod, { status: 201 });
   } catch (error) {
+    console.error("Gagal membuat membuat metode pembayaran:", error);
     return NextResponse.json({ message: "Gagal membuat data" }, { status: 500 });
   }
 }

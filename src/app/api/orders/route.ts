@@ -37,3 +37,79 @@ export async function GET() {
     );
   }
 }
+
+type CartItemClient = {
+  id: number;
+  harga: number;
+  jumlah: number;
+}
+
+
+// FUNGSI BARU UNTUK MEMBUAT PESANAN
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { cartItems,
+       nama_pelanggan, nomor_wa,
+        total_harga,
+         catatan_pelanggan } : {cartItems : CartItemClient[],
+          nama_pelanggan: string,
+          nomor_wa: string,
+          total_harga: number,
+          catatan_pelanggan?: string
+        } = body;
+
+    // Validasi data yang masuk
+    if (!cartItems || cartItems.length === 0 || !nama_pelanggan || !nomor_wa) {
+      return NextResponse.json({ message: "Data tidak lengkap" }, { status: 400 });
+    }
+
+    // Cari metode pembayaran pertama yang aktif untuk dijadikan default
+    const defaultMetodePembayaran = await db.metodepembayaran.findFirst({
+      where: { is_active: true },
+    });
+
+    if (!defaultMetodePembayaran) {
+      return NextResponse.json({ message: "Tidak ada metode pembayaran yang aktif." }, { status: 500 });
+    }
+
+    const createdOrder = await db.$transaction(async (prisma) => {
+      // 1. Buat catatan di tabel Orders
+      const newOrder = await prisma.orders.create({
+        data: {
+          nama_pelanggan,
+          nomor_wa,
+          total_harga,
+          catatan_pelanggan,
+          status_pembayaran: 'BELUM_BAYAR',
+        },
+      });
+
+      // 2. Buat catatan di tabel OrderItems
+      const orderItemsData = cartItems.map((item: CartItemClient) => ({
+        order_id: newOrder.id,
+        produk_id: item.id,
+        jumlah: item.jumlah,
+        subtotal: item.harga * item.jumlah,
+      }));
+      await prisma.orderitems.createMany({ data: orderItemsData });
+      
+      // 3. Buat catatan pembayaran dengan metode default
+      await prisma.pembayaran.create({
+          data: {
+              order_id: newOrder.id,
+              metode_id: defaultMetodePembayaran.id, // Gunakan ID default
+              jumlah_bayar: total_harga,
+              status: 'PENDING'
+          }
+      });
+      
+      return newOrder;
+    });
+    
+    return NextResponse.json(createdOrder, { status: 201 });
+  } catch (error) {
+    console.error("Gagal membuat pesanan:", error);
+    return NextResponse.json({ message: "Terjadi kesalahan saat membuat pesanan" }, { status: 500 });
+  }
+}

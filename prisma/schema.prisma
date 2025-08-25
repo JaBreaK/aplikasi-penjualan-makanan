@@ -1,10 +1,10 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
+  
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -30,8 +30,8 @@ model orderitems {
   orders    orders @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "orderitems_ibfk_1")
   produk    produk @relation(fields: [produk_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "orderitems_ibfk_2")
 
-  @@index([order_id], map: "order_id")
-  @@index([produk_id], map: "produk_id")
+  @@index([produk_id], map: "OrderItems_produk_id_idx") 
+  @@index([order_id], map: "OrderItems_order_id_idx") 
 }
 
 model orders {
@@ -41,6 +41,8 @@ model orders {
   nomor_wa          String                    @db.VarChar(20)
   total_harga       Int
   status_pembayaran orders_status_pembayaran? @default(BELUM_BAYAR)
+  keterangan_batal  String?
+  catatan_pelanggan  String?
   orderitems        orderitems[]
   pembayaran        pembayaran[]
 }
@@ -53,11 +55,12 @@ model pembayaran {
   waktu_bayar      DateTime           @default(now()) @db.Timestamp(0)
   status           pembayaran_status? @default(PENDING)
   kode_referensi   String?            @db.VarChar(255)
+  bukti_pembayaran_url String?
   orders           orders             @relation(fields: [order_id], references: [id], onUpdate: Restrict, map: "pembayaran_ibfk_1")
   metodepembayaran metodepembayaran   @relation(fields: [metode_id], references: [id], onUpdate: Restrict, map: "pembayaran_ibfk_2")
 
-  @@index([metode_id], map: "metode_id")
-  @@index([order_id], map: "order_id")
+  @@index([metode_id], map: "Pembayaran_metode_id_idx") 
+  @@index([order_id], map: "Pembayaran_order_id_idx") 
 }
 
 model produk {
@@ -75,12 +78,14 @@ model produk {
 
 enum orders_status_pembayaran {
   BELUM_BAYAR
+  MENUNGGU_KONFIRMASI
   LUNAS
   BATAL
 }
 
 enum pembayaran_status {
   PENDING
+  MENUNGGU_KONFIRMASI
   SUCCESS
   FAILED
 }

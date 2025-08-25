@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 type Kategori = {
   id: number;
@@ -9,7 +8,7 @@ type Kategori = {
 };
 
 export default function AddMenuPage() {
-  const router = useRouter();
+
 
   const [namaProduk, setNamaProduk] = useState("");
   const [deskripsi, setDeskripsi] = useState("");
@@ -68,8 +67,13 @@ export default function AddMenuPage() {
       setGambar(null);
       (e.target as HTMLFormElement).reset(); // Reset input file
 
-    } catch (error: any) {
-      setMessage(`Error: ${error.message}`);
+    } catch (error: unknown) { // <-- GANTI TIPE MENJADI 'unknown'
+      // Lakukan pengecekan tipe sebelum menggunakan error
+      if (error instanceof Error) {
+        setMessage(`Error: ${error.message}`);
+      } else {
+        setMessage("Terjadi kesalahan yang tidak diketahui.");
+      }
     } finally {
       setIsLoading(false);
     }
