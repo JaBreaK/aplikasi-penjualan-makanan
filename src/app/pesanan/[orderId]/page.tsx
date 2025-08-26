@@ -16,6 +16,7 @@ type Order = {
     id: number;
     status_pembayaran: string;
     total_harga: number;
+    status_pesanan: string;
     keterangan_batal: string | null; // <-- TAMBAHKAN INI
     catatan_pelanggan: string | null;
     orderitems: {
@@ -27,54 +28,68 @@ type Order = {
     }[];
 };
 
-// Komponen untuk Indikator Status
-const StatusIndicator = ({ status }: { status: string }) => {
-    let bgColor = "bg-gray-400";
+// Komponen terpisah untuk Indikator Status
+const StatusIndicator = ({ statusBayar, statusPesanan }: { statusBayar: string, statusPesanan: string }) => {
+    let bgColor = "bg-gray-500";
     let text = "Status Tidak Dikenal";
     let info = "Hubungi admin untuk informasi lebih lanjut.";
 
-    switch (status) {
-        case "BELUM_BAYAR":
-            bgColor = "bg-yellow-500";
-            text = "Menunggu Pembayaran";
-            info = "Silakan lakukan pembayaran dan upload bukti di bawah ini.";
-            break;
-        case "MENUNGGU_KONFIRMASI":
+    if (statusBayar === 'BATAL') {
+        bgColor = "bg-red-500";
+        text = "Pesanan Dibatalkan";
+        info = "Pesanan ini telah dibatalkan oleh admin.";
+    } else if (statusBayar !== 'LUNAS') {
+        bgColor = "bg-yellow-500";
+        text = "Menunggu Pembayaran";
+        if (statusBayar === 'MENUNGGU_KONFIRMASI') {
             bgColor = "bg-blue-500";
             text = "Pembayaran Sedang Diverifikasi";
-            info = "Bukti pembayaranmu sudah kami terima. Mohon tunggu proses verifikasi oleh admin.";
-            break;
-        case "LUNAS":
-            bgColor = "bg-green-500";
-            text = "Pembayaran Berhasil & Pesanan Diproses";
-            info = "Terima kasih! Pesananmu sedang kami siapkan.";
-            break;
-        case "BATAL":
-            bgColor = "bg-red-500";
-            text = "Pembayaran Dibatalkan";
-            info = "Silakan hubungi admin untuk informasi lebih lanjut.";
-            break;
+            info = "Bukti pembayaranmu sudah kami terima dan akan segera diperiksa.";
+        } else {
+            info = "Silakan lakukan pembayaran dan upload bukti di bawah ini.";
+        }
+    } else { // Jika statusBayar adalah LUNAS
+        switch (statusPesanan) {
+            case "PESANAN_DITERIMA":
+                bgColor = "bg-green-500";
+                text = "Pembayaran Berhasil & Pesanan Diterima";
+                info = "Pesananmu telah kami terima dan akan segera masuk antrean dapur.";
+                break;
+            case "SEDANG_DIMASAK":
+                bgColor = "bg-teal-500";
+                text = "Pesanan Sedang Dimasak";
+                info = "Tim dapur kami sedang menyiapkan pesananmu. Mohon ditunggu!";
+                break;
+            case "SIAP_DIAMBIL":
+                bgColor = "bg-purple-500";
+                text = "Pesanan Siap Diambil!";
+                info = "Hore! Pesananmu sudah selesai dimasak dan siap untuk diambil.";
+                break;
+            case "SELESAI":
+                bgColor = "bg-gray-800";
+                text = "Pesanan Selesai";
+                info = "Terima kasih telah memesan dari kami.";
+                break;
+        }
     }
 
     return (
-        <div className={`p-6 rounded-lg text-white text-center ${bgColor}`}>
+        <div className={`p-6 rounded-lg text-white text-center ${bgColor} transition-colors duration-500`}>
             <p className="font-bold text-xl">{text}</p>
             <p className="text-sm mt-1">{info}</p>
         </div>
     );
 };
 
-
 export default function PesananDetailPage() {
     const { orderId } = useParams();
     const [order, setOrder] = useState<Order | null>(null);
     const [buktiBayar, setBuktiBayar] = useState<File | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [message, setMessage] = useState("");
+    const [, setMessage] = useState("");
 
     const fetchOrder = useCallback(async () => {
         if (orderId) {
-            setIsLoading(true);
             const savedNomorWa = localStorage.getItem('customer_nomor_wa');
             if (!savedNomorWa) {
                 setOrder(null);
@@ -89,7 +104,7 @@ export default function PesananDetailPage() {
             }
             setIsLoading(false);
         }
-    }, [orderId]); // <-- Tambahkan orderId sebagai dependency
+    }, [orderId]);
 
     useEffect(() => {
         fetchOrder();
@@ -107,8 +122,8 @@ export default function PesananDetailPage() {
         });
 
         if (response.ok) {
-            setMessage("Upload berhasil! Status akan segera terupdate setelah verifikasi.");
-            await fetchOrder(); 
+            setMessage("Upload berhasil! Status akan segera terupdate.");
+            await fetchOrder();
         } else {
             setMessage("Upload gagal, coba lagi.");
         }
@@ -117,16 +132,16 @@ export default function PesananDetailPage() {
 
     if (isLoading) return <p className="p-8 text-center">Memuat pesanan...</p>;
     if (!order) return <p className="p-8 text-center">Pesanan tidak ditemukan atau Anda tidak memiliki akses.</p>;
-
-    const metodepembayaran = order.pembayaran?.[0]?.metodepembayaran;
+    
+    const metodePembayaran = order.pembayaran?.[0]?.metodepembayaran;
 
     return (
-        <main className="container mx-auto p-8 flex justify-center bg-gray-50 min-h-screen">
-            <div className="bg-white p-8 rounded-lg shadow-lg max-w-2xl w-full h-fit">
+        <main className="container mx-auto p-4 md:p-8 flex justify-center bg-gray-50 min-h-screen">
+            <div className="bg-white p-6 md:p-8 rounded-lg shadow-lg max-w-2xl w-full h-fit">
                 <h1 className="text-2xl font-bold mb-2">Detail Pesanan #{order.id}</h1>
                 <p className="text-gray-500 mb-6">Terima kasih atas pesananmu!</p>
 
-                <StatusIndicator status={order.status_pembayaran} />
+                <StatusIndicator statusBayar={order.status_pembayaran} statusPesanan={order.status_pesanan} />
 
                 {order.status_pembayaran === 'BATAL' && order.keterangan_batal && (
                     <div className="my-6 bg-red-50 border-l-4 border-red-500 text-red-800 p-4 rounded-lg text-left">
@@ -134,9 +149,8 @@ export default function PesananDetailPage() {
                         <p>Alasan: {order.keterangan_batal}</p>
                     </div>
                 )}
-                {message && <p className="my-4 p-3 bg-blue-100 text-blue-800 rounded-md text-center">{message}</p>}
 
-                <div className="my-6 border-t pt-6">
+                <div className="my-6 border-t pt-6 text-left">
                     <h2 className="text-xl font-bold mb-4">Ringkasan Pesanan</h2>
                     <ul className="mb-4 space-y-1">
                         {order.orderitems.map((item, index) => (
@@ -159,29 +173,18 @@ export default function PesananDetailPage() {
                 </div>
 
                 {order.status_pembayaran === 'BELUM_BAYAR' && (
-                    <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
+                    <div className="bg-blue-50 p-6 rounded-lg border border-blue-200 text-left">
                          <h2 className="text-xl font-bold mb-4">Instruksi Pembayaran</h2>
-                         <p className="mb-2">Silakan lakukan pembayaran sejumlah total pesanan ke salah satu metode di bawah ini:</p>
-                         {metodepembayaran ? (
+                         <p className="mb-4">Silakan lakukan pembayaran ke metode yang telah dipilih:</p>
+                         {metodePembayaran && (
                             <div className="p-4 bg-white rounded-md border">
-                                <p className="font-bold text-lg">{metodepembayaran.nama_metode}</p>
-                                {metodepembayaran.nomor_rekening && (
-                                    <p className="mt-1">Nomor: <strong className="text-lg">{metodepembayaran.nomor_rekening}</strong></p>
-                                )}
-                                {metodepembayaran.nama_rekening && (
-                                    <p>A/N: <strong>{metodepembayaran.nama_rekening}</strong></p>
-                                )}
-                                {metodepembayaran.gambar_qris_url && (
-                                    <div className="mt-2">
-                                        <Image src={metodepembayaran.gambar_qris_url} alt={`QRIS ${metodepembayaran.nama_metode}`} width={200} height={200} className="rounded-md"/>
-                                    </div>
-                                )}
+                                <p className="font-bold text-lg">{metodePembayaran.nama_metode}</p>
+                                {metodePembayaran.nomor_rekening && <p>Nomor: <strong>{metodePembayaran.nomor_rekening}</strong></p>}
+                                {metodePembayaran.nama_rekening && <p>A/N: <strong>{metodePembayaran.nama_rekening}</strong></p>}
+                                {metodePembayaran.gambar_qris_url && <Image src={metodePembayaran.gambar_qris_url} alt="QRIS" width={200} height={200} className="mt-2 rounded-md"/>}
                             </div>
-                         ) : (
-                            <p>Metode pembayaran tidak ditemukan.</p>
                          )}
-                     <p className="mt-4 font-semibold text-red-600">PENTING: Setelah melakukan pembayaran, upload bukti transfer di bawah ini.</p>
-
+                         <p className="mt-4 font-semibold text-red-600">PENTING: Setelah membayar, upload bukti transfer di bawah ini.</p>
                          <form onSubmit={handleUpload} className="mt-6">
                             <label className="block mb-2 font-semibold">Upload Bukti Pembayaran:</label>
                             <input type="file" onChange={(e) => setBuktiBayar(e.target.files?.[0] || null)} className="w-full p-2 border rounded" required />
@@ -191,9 +194,9 @@ export default function PesananDetailPage() {
                          </form>
                     </div>
                 )}
-
-                <Link href="/pesanan" className="mt-8 inline-block text-blue-600 hover:underline">
-                    Kembali ke Halaman Pesanan
+                
+                <Link href="/menu" className="mt-8 inline-block text-blue-600 hover:underline">
+                    ‹ Kembali ke Menu
                 </Link>
             </div>
         </main>

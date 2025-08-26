@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { orders_status_pembayaran } from "@prisma/client"; 
+import type { orders_status_pembayaran, orders_status_pesanan } from "@prisma/client"; 
+import { MessageSquare } from "lucide-react"; 
 
 // Definisikan tipe data baru yang lebih lengkap
 type Produk = {
@@ -32,6 +33,7 @@ type Order = {
   nomor_wa: string;
   total_harga: number;
   status_pembayaran: string;
+  status_pesanan: string;
   keterangan_batal: string | null;
   orderitems: OrderItem[];
   pembayaran: pembayaran[];
@@ -91,6 +93,21 @@ export default function OrdersPage() {
         }
       }
     };
+
+    // FUNGSI BARU: untuk update STATUS PESANAN (Dapur)
+  const handleUpdateStatusPesanan = async (orderId: number, newStatus: orders_status_pesanan) => {
+    try {
+      await fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status_pesanan: newStatus }),
+      });
+      await fetchOrders();
+    } catch (error) {
+      console.error("Error updating order status:", error);
+      alert("Terjadi kesalahan saat mengupdate status pesanan.");
+    }
+  };
     
     const handleBatal = (orderId: number) => {
       const alasan = prompt("Masukkan alasan pembatalan pesanan:");
@@ -98,6 +115,8 @@ export default function OrdersPage() {
           handleUpdateStatus(orderId, 'BATAL', alasan); // Kirim 'BATAL' sebagai tipe ENUM
       }
     };
+
+    
 
   if (isLoading) return <p className="p-8">Memuat pesanan...</p>;
   if (error) return <p className="p-8 text-center text-red-500">Error: {error}</p>;
@@ -113,6 +132,26 @@ export default function OrdersPage() {
           if (order.status_pembayaran === 'LUNAS') statusColor = "bg-green-200 text-green-800";
           if (order.status_pembayaran === 'BATAL') statusColor = "bg-red-200 text-red-800";
 
+          let pesanWA = `Halo ${order.nama_pelanggan}, info untuk pesanan Anda #${order.id}:\n\n`;
+          switch (order.status_pesanan) {
+            case 'PESANAN_DITERIMA':
+              pesanWA += "Pesanan Anda sudah kami terima dan akan segera kami proses.";
+              break;
+            case 'SEDANG_DIMASAK':
+              pesanWA += "Pesanan Anda sudah masuk antrean dapur dan sedang kami masak. Mohon ditunggu ya!";
+              break;
+            case 'SIAP_DIAMBIL':
+              pesanWA += "Hore! Pesanan Anda sudah siap. Silakan segera diambil agar tetap nikmat saat disantap.";
+              break;
+            case 'SELESAI':
+              pesanWA += "Pesanan Anda sudah selesai. Terima kasih telah memesan, semoga suka!";
+              break;
+            default:
+              pesanWA = `Halo ${order.nama_pelanggan}, ada update untuk pesanan Anda #${order.id}.`;
+          }
+          const nomorWaFormatted = order.nomor_wa.startsWith('0') ? `62${order.nomor_wa.substring(1)}` : order.nomor_wa;
+          const linkWA = `https://wa.me/${nomorWaFormatted}?text=${encodeURIComponent(pesanWA)}`;
+
           return (
             <div key={order.id} className="bg-white p-6 rounded-lg shadow-md border">
               <div className="flex justify-between items-center mb-4">
@@ -126,6 +165,11 @@ export default function OrdersPage() {
                   <span className={`px-3 py-1 text-sm font-semibold rounded-full ${statusColor}`}>
                   {order.status_pembayaran.replace('_', ' ')}
                 </span>
+                {order.status_pembayaran === 'LUNAS' && (
+                        <span className="px-3 py-1 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-800">
+                           Dapur: {order.status_pesanan.replace('_', ' ')}
+                        </span>
+                    )}
               </div>
               {/* Tampilkan keterangan jika pesanan dibatalkan */}
               {order.status_pembayaran === 'BATAL' && order.keterangan_batal && (
@@ -177,6 +221,18 @@ export default function OrdersPage() {
                   Total: Rp {order.total_harga.toLocaleString('id-ID')}
                 </div>
                 <div className="flex justify-end gap-2 mt-4">
+                  {/* TOMBOL NOTIFIKASI BARU (Hanya muncul jika sudah lunas) */}
+                {order.status_pembayaran === 'LUNAS'  && (
+                  <a 
+                    href={linkWA}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-green-500 text-white px-4 py-2 rounded flex items-center gap-2"
+                  >
+                    <MessageSquare size={16} />
+                    Kirim Notif WA
+                  </a>
+                )}
                   {/* Tombol Batal, hanya muncul jika status bukan LUNAS atau BATAL */}
                 {order.status_pembayaran !== 'LUNAS' && order.status_pembayaran !== 'BATAL' && (
                     <button onClick={() => handleBatal(order.id)} className="bg-red-500 text-white px-4 py-2 rounded">
@@ -192,6 +248,27 @@ export default function OrdersPage() {
             Verifikasi & Tandai LUNAS
         </button>
     )}
+
+    {/* 2. Alur Kerja Dapur (Hanya muncul jika sudah LUNAS) */}
+    {order.status_pembayaran === 'LUNAS' && (
+                    <>
+                        {order.status_pesanan === 'PESANAN_DITERIMA' && (
+                            <button onClick={() => handleUpdateStatusPesanan(order.id, 'SEDANG_DIMASAK')} className="bg-indigo-500 text-white px-4 py-2 rounded">
+                                Proses (Masak)
+                            </button>
+                        )}
+                        {order.status_pesanan === 'SEDANG_DIMASAK' && (
+                            <button onClick={() => handleUpdateStatusPesanan(order.id, 'SIAP_DIAMBIL')} className="bg-purple-500 text-white px-4 py-2 rounded">
+                                Tandai Siap Diambil
+                            </button>
+                        )}
+                        {order.status_pesanan === 'SIAP_DIAMBIL' && (
+                            <button onClick={() => handleUpdateStatusPesanan(order.id, 'SELESAI')} className="bg-gray-800 text-white px-4 py-2 rounded">
+                                Tandai Selesai
+                            </button>
+                        )}
+                    </>
+                )}
 
     {/* Tombol "Tandai LUNAS" manual jika statusnya masih BELUM_BAYAR (untuk pembayaran cash/lainnya) */}
     {order.status_pembayaran === 'BELUM_BAYAR' && (

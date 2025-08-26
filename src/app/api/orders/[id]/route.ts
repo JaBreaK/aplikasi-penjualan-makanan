@@ -1,6 +1,6 @@
 import { db } from "@/lib/prisma";
 import { NextResponse, NextRequest } from "next/server";
-import type { orders_status_pembayaran } from "@prisma/client"; 
+import type { orders_status_pembayaran, orders_status_pesanan } from "@prisma/client"; 
 
 export async function PATCH(
   request: NextRequest,
@@ -14,10 +14,12 @@ export async function PATCH(
 
     const { 
       status_pembayaran, 
+      status_pesanan,
       keterangan_batal,
       metode_pembayaran_id 
   }: { 
       status_pembayaran: orders_status_pembayaran, 
+      status_pesanan: orders_status_pesanan,
       keterangan_batal?: string ,
       metode_pembayaran_id?: number
   } = body;
@@ -40,6 +42,7 @@ export async function PATCH(
     // Siapkan data yang akan diupdate
     const dataToUpdate: {
       status_pembayaran: orders_status_pembayaran;
+      status_pesanan?: orders_status_pesanan;
         keterangan_batal?: string | null;
     } = {
         status_pembayaran,
@@ -52,6 +55,11 @@ export async function PATCH(
     } else {
       dataToUpdate.keterangan_batal = null;
     }
+
+    // Cek apakah ada update untuk status pesanan (dapur)
+    if (status_pesanan) {
+      dataToUpdate.status_pesanan = status_pesanan;
+  }
 
     const updatedOrder = await db.orders.update({
       where: { id: numericId },

@@ -44,6 +44,7 @@ model orders {
   nomor_wa          String                    @db.VarChar(20)
   total_harga       Int
   status_pembayaran orders_status_pembayaran? @default(BELUM_BAYAR)
+  status_pesanan    orders_status_pesanan @default(PESANAN_DITERIMA)
   keterangan_batal  String?
   catatan_pelanggan  String?
   orderitems        orderitems[]
@@ -91,4 +92,11 @@ enum pembayaran_status {
   MENUNGGU_KONFIRMASI
   SUCCESS
   FAILED
+}
+
+enum orders_status_pesanan {
+  PESANAN_DITERIMA
+  SEDANG_DIMASAK
+  SIAP_DIAMBIL
+  SELESAI
 }

@@ -12,16 +12,16 @@ type MetodePembayaran = {
   };
 
 export default function CartPage() {
-    const { cartItems, addToCart, removeFromCart, clearCart } = useCart();
-  const router = useRouter();
+    const { cartItems, addToCart, removeFromCart } = useCart();
+    const router = useRouter();
 
-  const [metodeList, setMetodeList] = useState<MetodePembayaran[]>([]);
-  const [metodeId, setMetodeId] = useState("");
-  const [nama, setNama] = useState("");
-  const [nomorWa, setNomorWa] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [catatan, setCatatan] = useState("");
+    const [metodeList, setMetodeList] = useState<MetodePembayaran[]>([]);
+    const [metodeId, setMetodeId] = useState("");
+    const [nama, setNama] = useState("");
+    const [nomorWa, setNomorWa] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+    const [message, setMessage] = useState("");
+    const [catatan, setCatatan] = useState("");
 
   useEffect(() => {
     const savedNama = localStorage.getItem('customer_nama');
@@ -75,7 +75,7 @@ export default function CartPage() {
       }
       
       const createdOrder = await response.json();
-      clearCart();
+      setMessage("Pesanan berhasil dibuat! Mengalihkan ke halaman detail...");
       router.push(`/pesanan/${createdOrder.id}`);
 
     } catch (error: unknown) { // <-- GANTI DARI 'any' KE 'unknown'
