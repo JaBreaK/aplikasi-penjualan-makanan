@@ -2,16 +2,21 @@
 import { db } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-// MENGAMBIL SEMUA METODE PEMBAYARAN
 export async function GET() {
   try {
     const methods = await db.metodepembayaran.findMany();
-    return NextResponse.json(methods);
+    return NextResponse.json(methods, {
+      status: 200,
+      headers: {
+        "Cache-Control": "public, max-age=360, stale-while-revalidate=3600"
+      }
+    });
   } catch (error) {
     console.error("Gagal mengambil metode pembayaran:", error);
     return NextResponse.json({ message: "Gagal mengambil data" }, { status: 500 });
   }
 }
+
 
 // MEMBUAT METODE PEMBAYARAN BARU
 export async function POST(request: Request) {
