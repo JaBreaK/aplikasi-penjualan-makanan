@@ -19,6 +19,7 @@ type Produk = {
   harga: number;
   kategori_id: number;
   gambar_url: string | null;
+  kategori?: Kategori; // <-- sekarang produk bisa punya nested kategori
 };
 
 export default function HomePage() {
@@ -28,21 +29,34 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
   const { addToCart } = useCart();
 
-  // Ambil data produk dan kategori dari API
+  // Ambil data produk dari API /api/menu saja, lalu ekstrak kategori unik
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-      const [produkRes, kategoriRes] = await Promise.all([
-        fetch('/api/menu'),
-        fetch('/api/kategori')
-      ]);
-      if (produkRes.ok && kategoriRes.ok) {
-        const produkData = await produkRes.json();
-        const kategoriData = await kategoriRes.json();
+      try {
+        const produkRes = await fetch('/api/menu');
+        if (!produkRes.ok) throw new Error("Gagal memuat menu");
+        const produkData: Produk[] = await produkRes.json();
+
         setSemuaProduk(produkData);
-        setKategoriList(kategoriData);
+
+        // Ekstrak kategori unik dari setiap produk
+        const mapKategori = new Map<number, Kategori>();
+        produkData.forEach((p) => {
+          if (p.kategori && p.kategori.id != null) {
+            mapKategori.set(p.kategori.id, { id: p.kategori.id, nama_kategori: p.kategori.nama_kategori });
+          } else if (p.kategori_id != null && !mapKategori.has(p.kategori_id)) {
+            // fallback bila nested kategori tidak tersedia
+            mapKategori.set(p.kategori_id, { id: p.kategori_id, nama_kategori: "Lainnya" });
+          }
+        });
+        setKategoriList(Array.from(mapKategori.values()));
+      } catch (err) {
+        console.error(err);
+        // bisa tambahin notifikasi error di sini jika perlu
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
     fetchData();
   }, []);
