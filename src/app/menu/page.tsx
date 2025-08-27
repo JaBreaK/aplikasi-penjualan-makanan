@@ -19,7 +19,7 @@ type Produk = {
   harga: number;
   kategori_id: number;
   gambar_url: string | null;
-  kategori?: Kategori; // <-- sekarang produk bisa punya nested kategori
+  kategori: Kategori | null;
 };
 
 export default function HomePage() {
@@ -29,35 +29,38 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
   const { addToCart } = useCart();
 
-  // Ambil data produk dari API /api/menu saja, lalu ekstrak kategori unik
+  // Ambil data produk dan kategori dari API
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
         const produkRes = await fetch('/api/menu');
-        if (!produkRes.ok) throw new Error("Gagal memuat menu");
+        if (!produkRes.ok) {
+          throw new Error('Gagal ambil data menu');
+        }
         const produkData: Produk[] = await produkRes.json();
-
         setSemuaProduk(produkData);
-
-        // Ekstrak kategori unik dari setiap produk
-        const mapKategori = new Map<number, Kategori>();
+  
+        // derive kategori unik dari produkData
+        const kategoriMap = new Map<number, Kategori>();
         produkData.forEach((p) => {
-          if (p.kategori && p.kategori.id != null) {
-            mapKategori.set(p.kategori.id, { id: p.kategori.id, nama_kategori: p.kategori.nama_kategori });
-          } else if (p.kategori_id != null && !mapKategori.has(p.kategori_id)) {
-            // fallback bila nested kategori tidak tersedia
-            mapKategori.set(p.kategori_id, { id: p.kategori_id, nama_kategori: "Lainnya" });
+          if (p.kategori && !kategoriMap.has(p.kategori.id)) {
+            kategoriMap.set(p.kategori.id, p.kategori);
           }
         });
-        setKategoriList(Array.from(mapKategori.values()));
+        // jika ingin urut berdasarkan nama:
+        const kategoriArray = Array.from(kategoriMap.values()).sort((a, b) =>
+          a.nama_kategori.localeCompare(b.nama_kategori)
+        );
+        setKategoriList(kategoriArray);
       } catch (err) {
         console.error(err);
-        // bisa tambahin notifikasi error di sini jika perlu
+        // bisa tampilkan toast atau state error di sini
       } finally {
         setIsLoading(false);
       }
     };
+  
     fetchData();
   }, []);
 
