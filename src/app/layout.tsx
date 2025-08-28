@@ -4,9 +4,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
 import CartSidebar from "@/components/CartSidebar";
-import AppContent from "@/components/AppContent";
-import FloatingCartButton from "@/components/FloatingCartButton"; // <-- IMPORT BARU
 import { ReactNode } from "react";
+import Providers from "@/components/Providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,13 +18,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className={`${inter.className} overflow-x-hidden`}>
-        <CartProvider>
-          <AppContent>
+      <Providers> {/* <-- BUNGKUS DI SINI */}
+          <CartProvider>
             {children}
-          </AppContent>
-          <CartSidebar />
-          <FloatingCartButton /> {/* <-- TAMBAHKAN DI SINI */}
-        </CartProvider>
+            <CartSidebar />
+          </CartProvider>
+        </Providers>
       </body>
     </html>
   );

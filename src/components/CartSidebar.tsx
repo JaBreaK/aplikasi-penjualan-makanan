@@ -70,7 +70,18 @@ export default function CartSidebar() {
                                 <div className="p-4 border-t bg-gray-50">
                                     <div className="space-y-3 mb-4">
                                         <input type="text" value={nama} onChange={(e) => setNama(e.target.value)} placeholder="Nama Anda" className="p-2 border rounded w-full" required />
-                                        <input type="tel" value={nomorWa} onChange={(e) => setNomorWa(e.target.value)} placeholder="Nomor WhatsApp" className="p-2 border rounded w-full" required />
+                                        <input
+  type="tel"
+  value={nomorWa}
+  onChange={(e) => {
+    const onlyNums = e.target.value.replace(/\D/g, ""); // hapus selain angka
+    setNomorWa(onlyNums);
+  }}
+  placeholder="Nomor WhatsApp"
+  className="p-2 border rounded w-full"
+  required
+/>
+
                                         <textarea value={catatan} onChange={(e) => setCatatan(e.target.value)} placeholder="Catatan (opsional)" className="p-2 border rounded w-full" rows={2}></textarea>
                                         <select value={metodeId} onChange={(e) => setMetodeId(e.target.value)} className="p-2 border rounded w-full bg-white" required>
                                             <option value="" disabled>Pilih Metode Pembayaran</option>

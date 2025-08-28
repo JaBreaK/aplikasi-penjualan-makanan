@@ -45,6 +45,7 @@ type CartItemClient = {
 }
 
 
+
 // FUNGSI BARU UNTUK MEMBUAT PESANAN
 export async function POST(request: Request) {
   try {
@@ -64,27 +65,46 @@ export async function POST(request: Request) {
           metode_pembayaran_id : number
         } = body;
 
-    // Validasi data yang masuk
-    if (!cartItems || cartItems.length === 0 || !nama_pelanggan || !nomor_wa || !metode_pembayaran_id) {
-      return NextResponse.json({ message: "Data tidak lengkap" }, { status: 400 });
+    // Hanya validasi data yang paling penting
+    if (!cartItems || cartItems.length === 0) {
+      return NextResponse.json({ message: "Keranjang tidak boleh kosong." }, { status: 400 });
     }
 
-  
+    // --- LOGIKA CERDAS DIMULAI DI SINI ---
+
+    // 1. Tentukan detail pelanggan
+    const isKasirOrder = !nama_pelanggan && !nomor_wa;
+    const finalNamaPelanggan = nama_pelanggan || 'Pelanggan di Tempat';
+    const finalNomorWa = nomor_wa || '-';
+
+    // 2. Tentukan metode pembayaran
+    let finalMetodeId = metode_pembayaran_id;
+    if (!finalMetodeId) {
+      const defaultMetode = await db.metodepembayaran.findFirst({ where: { is_active: true } });
+      if (!defaultMetode) {
+        return NextResponse.json({ message: "Metode pembayaran tidak tersedia." }, { status: 500 });
+      }
+      finalMetodeId = defaultMetode.id;
+    }
+    
+    // 3. Tentukan status pembayaran
+    // Jika dari kasir, anggap langsung LUNAS. Jika online, BELUM_BAYAR.
+    const finalStatusPembayaran = isKasirOrder ? 'LUNAS' : 'BELUM_BAYAR';
+
+    // --- AKHIR LOGIKA CERDAS ---
 
     const createdOrder = await db.$transaction(async (prisma) => {
-      // 1. Buat catatan di tabel Orders
       const newOrder = await prisma.orders.create({
         data: {
-          nama_pelanggan,
-          nomor_wa,
+          nama_pelanggan: finalNamaPelanggan,
+          nomor_wa: finalNomorWa,
           total_harga,
           catatan_pelanggan,
-          status_pembayaran: 'BELUM_BAYAR',
+          status_pembayaran: finalStatusPembayaran,
         },
       });
 
-      // 2. Buat catatan di tabel OrderItems
-      const orderItemsData = cartItems.map((item: CartItemClient) => ({
+      const orderItemsData = cartItems.map((item) => ({
         order_id: newOrder.id,
         produk_id: item.id,
         jumlah: item.jumlah,
@@ -92,13 +112,12 @@ export async function POST(request: Request) {
       }));
       await prisma.orderitems.createMany({ data: orderItemsData });
       
-      // 3. Buat catatan pembayaran dengan metode default
       await prisma.pembayaran.create({
           data: {
               order_id: newOrder.id,
-              metode_id: metode_pembayaran_id, // Gunakan ID default
+              metode_id: finalMetodeId,
               jumlah_bayar: total_harga,
-              status: 'PENDING'
+              status: isKasirOrder ? 'SUCCESS' : 'PENDING'
           }
       });
       

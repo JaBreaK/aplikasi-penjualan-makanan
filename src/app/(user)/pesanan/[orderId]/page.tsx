@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, FormEvent, useCallback } from "react";
+import { useEffect, useState, FormEvent, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image"; // <-- Pastikan Image di-import
@@ -88,6 +88,26 @@ export default function PesananDetailPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [, setMessage] = useState("");
 
+    // REF UNTUK AUDIO DAN STATUS SEBELUMNYA
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const prevStatusRef = useRef<string | null>(null);
+    // EFEK BARU UNTUK MEMUTAR SUARA
+    useEffect(() => {
+        if (order) {
+            // Gabungkan status bayar dan status pesanan menjadi satu string unik
+            const currentStatus = `${order.status_pembayaran}-${order.status_pesanan}`;
+
+            // Cek apakah ini bukan render pertama DAN statusnya berubah
+            if (prevStatusRef.current && prevStatusRef.current !== currentStatus) {
+                // Mainkan suara notifikasi
+                audioRef.current?.play().catch(error => console.log("Gagal memutar audio:", error));
+            }
+
+            // Simpan status saat ini untuk perbandingan di render berikutnya
+            prevStatusRef.current = currentStatus;
+        }
+    }, [order]);
+
     const fetchOrder = useCallback(async () => {
         if (orderId) {
             const savedNomorWa = localStorage.getItem('customer_nomor_wa');
@@ -107,8 +127,19 @@ export default function PesananDetailPage() {
     }, [orderId]);
 
     useEffect(() => {
+        // Ambil data pertama kali saat halaman dimuat
         fetchOrder();
-    }, [fetchOrder]);
+
+        // Setelah itu, set interval untuk mengambil data setiap 5 detik
+        const intervalId = setInterval(() => {
+            console.log("Checking for order updates...");
+            fetchOrder();
+        }, 5000); // 5000 milidetik = 5 detik
+
+        // PENTING: Hentikan interval saat komponen di-unmount (ditinggalkan)
+        // agar tidak berjalan selamanya.
+        return () => clearInterval(intervalId);
+    }, [fetchOrder]); // useEffect akan berjalan lagi jika fetchOrder berubah
 
     const handleUpload = async (e: FormEvent) => {
         e.preventDefault();
@@ -137,6 +168,8 @@ export default function PesananDetailPage() {
 
     return (
         <main className="container mx-auto p-4 md:p-8 flex justify-center bg-gray-50 min-h-screen">
+            <audio ref={audioRef} src="/notification.mp3" preload="auto"></audio>
+
             <div className="bg-white p-6 md:p-8 rounded-lg shadow-lg max-w-2xl w-full h-fit">
                 <h1 className="text-2xl font-bold mb-2">Detail Pesanan #{order.id}</h1>
                 <p className="text-gray-500 mb-6">Terima kasih atas pesananmu!</p>
