@@ -116,7 +116,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       const response = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cartItems, nama_pelanggan: nama, nomor_wa: nomorWa, total_harga: totalHarga, metode_pembayaran_id: parseInt(metodeId), catatan_pelanggan: catatan }),
+        body: JSON.stringify({ cartItems, nama_pelanggan: nama, nomor_wa: nomorWa, total_harga: totalHarga, metode_pembayaran_id: parseInt(metodeId), catatan_pelanggan: catatan, tipe_pesanan: 'ONLINE', }),
       });
       if (!response.ok) throw new Error("Gagal membuat pesanan.");
       
