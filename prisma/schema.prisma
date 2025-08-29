@@ -45,6 +45,7 @@ model orders {
   total_harga       Int
   status_pembayaran orders_status_pembayaran? @default(BELUM_BAYAR)
   status_pesanan    orders_status_pesanan @default(PESANAN_DITERIMA)
+  tipe_pesanan      orders_tipe_pesanan @default(ONLINE)
   keterangan_batal  String?
   catatan_pelanggan  String?
   orderitems        orderitems[]
@@ -101,6 +102,10 @@ enum orders_status_pesanan {
   SELESAI
 }
 
+enum orders_tipe_pesanan {
+  ONLINE
+  OFFLINE
+}
 
 
 model Account {

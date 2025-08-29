@@ -1,6 +1,7 @@
 // src/app/api/orders/route.ts
 import { db } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import type { orders_tipe_pesanan, orders_status_pembayaran, pembayaran_status } from "@prisma/client";
 
 export async function GET() {
   try {
@@ -56,42 +57,49 @@ export async function POST(request: Request) {
           nomor_wa,
           total_harga,
           catatan_pelanggan,
-          metode_pembayaran_id 
+          metode_pembayaran_id, 
+          tipe_pesanan
         } : {cartItems : CartItemClient[],
           nama_pelanggan: string,
           nomor_wa: string,
           total_harga: number,
           catatan_pelanggan?: string,
-          metode_pembayaran_id : number
+          metode_pembayaran_id : number,
+          tipe_pesanan: orders_tipe_pesanan
         } = body;
 
     // Hanya validasi data yang paling penting
-    if (!cartItems || cartItems.length === 0) {
-      return NextResponse.json({ message: "Keranjang tidak boleh kosong." }, { status: 400 });
+    if (!cartItems || cartItems.length === 0 || !tipe_pesanan || !metode_pembayaran_id) {
+      return NextResponse.json({ message: "Data tidak lengkap." }, { status: 400 });
     }
 
     // --- LOGIKA CERDAS DIMULAI DI SINI ---
 
     // 1. Tentukan detail pelanggan
-    const isKasirOrder = !nama_pelanggan && !nomor_wa;
     const finalNamaPelanggan = nama_pelanggan || 'Pelanggan di Tempat';
     const finalNomorWa = nomor_wa || '-';
 
-    // 2. Tentukan metode pembayaran
-    let finalMetodeId = metode_pembayaran_id;
-    if (!finalMetodeId) {
-      const defaultMetode = await db.metodepembayaran.findFirst({ where: { is_active: true } });
-      if (!defaultMetode) {
-        return NextResponse.json({ message: "Metode pembayaran tidak tersedia." }, { status: 500 });
-      }
-      finalMetodeId = defaultMetode.id;
-    }
     
-    // 3. Tentukan status pembayaran
-    // Jika dari kasir, anggap langsung LUNAS. Jika online, BELUM_BAYAR.
-    const finalStatusPembayaran = isKasirOrder ? 'LUNAS' : 'BELUM_BAYAR';
 
-    // --- AKHIR LOGIKA CERDAS ---
+    // 2. Tentukan metode pembayaran
+    const metodePembayaran = await db.metodepembayaran.findUnique({
+      where: { id: metode_pembayaran_id },
+    });
+
+    if (!metodePembayaran) {
+      return NextResponse.json({ message: "Metode pembayaran tidak valid." }, { status: 400 });
+    }
+
+
+    let finalStatusPembayaran: orders_status_pembayaran = 'BELUM_BAYAR';
+    let finalStatusDiPembayaran: pembayaran_status = 'PENDING';
+
+    // Status hanya LUNAS jika tipenya OFFLINE DAN metodenya adalah 'Cash'
+    if (tipe_pesanan === 'OFFLINE' && metodePembayaran.nama_metode.toLowerCase() === 'cash') {
+        finalStatusPembayaran = 'LUNAS';
+        finalStatusDiPembayaran = 'SUCCESS';
+    }
+
 
     const createdOrder = await db.$transaction(async (prisma) => {
       const newOrder = await prisma.orders.create({
@@ -100,6 +108,7 @@ export async function POST(request: Request) {
           nomor_wa: finalNomorWa,
           total_harga,
           catatan_pelanggan,
+          tipe_pesanan: tipe_pesanan,
           status_pembayaran: finalStatusPembayaran,
         },
       });
@@ -115,9 +124,9 @@ export async function POST(request: Request) {
       await prisma.pembayaran.create({
           data: {
               order_id: newOrder.id,
-              metode_id: finalMetodeId,
+              metode_id: metode_pembayaran_id,
               jumlah_bayar: total_harga,
-              status: isKasirOrder ? 'SUCCESS' : 'PENDING'
+              status: finalStatusDiPembayaran
           }
       });
       
