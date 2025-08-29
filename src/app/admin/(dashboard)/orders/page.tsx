@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { orders_status_pembayaran, orders_status_pesanan } from "@prisma/client";
 import { MessageSquare, RefreshCw, X, Check, Printer, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -41,6 +41,13 @@ export default function OrdersPage() {
   const [expanded, setExpanded] = useState<number[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Audio notification
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
+  const [pollIntervalSec, setPollIntervalSec] = useState<number>(8);
+  const prevIdsRef = useRef<number[]>([]);
+
   // Filter states (kasir)
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
@@ -63,19 +70,48 @@ export default function OrdersPage() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  const fetchOrders = async () => {
-    setIsLoading(true);
+  // Initialize audio once
+  useEffect(() => {
+    try {
+      audioRef.current = new Audio("/notification.mp3");
+      audioRef.current.preload = "auto";
+    } catch (e) {
+      console.warn("Gagal inisialisasi audio:", e);
+      audioRef.current = null;
+    }
+  }, []);
+
+  const fetchOrders = async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (!silent) setIsLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/orders");
       if (!res.ok) throw new Error("Gagal memuat data pesanan");
-      const data = await res.json();
+      const data: Order[] = await res.json();
+
+      // detect new orders by comparing IDs
+      const prevIds = prevIdsRef.current || [];
+      const newIds = data.map((d) => d.id).filter((id) => !prevIds.includes(id));
+
+      // don't play sound on initial load (prevIds empty)
+      if (prevIds.length > 0 && newIds.length > 0 && soundEnabled) {
+        try {
+          // play returns a promise; catch auto-play rejection
+          await audioRef.current?.play();
+        } catch (err) {
+          // Browsers may block autoplay until user interacts. Show toast to inform user.
+          console.warn("Audio play blocked:", err);
+          showToast("Notifikasi suara diblokir oleh browser. Klik tombol Suara untuk mengaktifkan.", "error");
+        }
+      }
+
       setOrders(data);
+      prevIdsRef.current = data.map((d) => d.id);
     } catch (err: unknown) {
       if (err instanceof Error) setError(err.message);
       else setError("Terjadi kesalahan tidak diketahui saat mengambil data.");
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
       setRefreshing(false);
     }
   };
@@ -83,6 +119,15 @@ export default function OrdersPage() {
   useEffect(() => {
     fetchOrders();
   }, []);
+
+  // Polling untuk cek order baru
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const iv = setInterval(() => {
+      fetchOrders({ silent: true });
+    }, Math.max(2000, pollIntervalSec * 1000));
+    return () => clearInterval(iv);
+  }, [autoRefresh, pollIntervalSec, soundEnabled]);
 
   const handleUpdateStatus = async (orderId: number, newStatus: orders_status_pembayaran, keterangan?: string) => {
     try {
@@ -209,9 +254,7 @@ export default function OrdersPage() {
               <h2 className="font-bold">Error</h2>
               <p className="text-sm text-red-700">{error}</p>
               <div className="mt-3">
-                <button onClick={fetchOrders} className="px-3 py-2 rounded bg-red-600 text-white">
-                  Coba lagi
-                </button>
+              <button onClick={() => fetchOrders()}>Apply</button>
               </div>
             </div>
           </div>
@@ -230,6 +273,23 @@ export default function OrdersPage() {
             className={`flex items-center gap-2 px-3 py-2 rounded ${refreshing ? "bg-gray-200" : "bg-gray-100 hover:bg-gray-200"}`}>
             <RefreshCw size={16} /> Refresh
           </button>
+
+          <button
+            onClick={() => { setSoundEnabled((s) => !s); showToast(`Suara notifikasi ${!soundEnabled ? 'diaktifkan' : 'dinonaktifkan'}`); }}
+            className={`px-3 py-2 rounded ${soundEnabled ? 'bg-green-100' : 'bg-gray-100'}`}>
+            Suara: {soundEnabled ? 'ON' : 'OFF'}
+          </button>
+
+          <button
+            onClick={() => setAutoRefresh((a) => !a)}
+            className={`px-3 py-2 rounded ${autoRefresh ? 'bg-indigo-100' : 'bg-gray-100'}`}>
+            Auto-refresh: {autoRefresh ? 'ON' : 'OFF'}
+          </button>
+
+          <div className="flex items-center gap-2">
+            <label className="text-sm">Interval (detik)</label>
+            <input type="number" min={2} value={pollIntervalSec} onChange={(e) => setPollIntervalSec(Number(e.target.value) || 2)} className="w-20 border p-1 rounded" />
+          </div>
         </div>
       </div>
 
