@@ -12,6 +12,7 @@ const navLinks = [
   { name: 'Home', href: '/' },
   { name: 'Menu', href: '/menu' },
   { name: 'Pesanan', href: '/pesanan' },
+  { name: 'Kontak', href: '/kontak' },
 ];
 
 export default function Navbar() {
@@ -45,7 +46,7 @@ export default function Navbar() {
               <Link
                 key={link.name}
                 href={link.href}
-                className={`font-semibold text-gray-600 hover:text-[#3d2c1d] transition-colors relative after:content-[''] after:absolute after:left-0 after:bottom-[-4px] after:w-full after:h-[2px] after:bg-[#3d2c1d] after:transition-transform after:duration-300 ${isActive ? 'after:scale-x-100' : 'after:scale-x-0'}`}
+                className={`font-semibold text-gray-600 hover:text-[#F0A04B] transition-colors relative after:content-[''] after:absolute after:left-0 after:bottom-[-4px] after:w-full after:h-[2px] after:bg-[#F0A04B] after:transition-transform after:duration-300 ${isActive ? 'after:scale-x-100' : 'after:scale-x-0'}`}
               >
                 {link.name}
               </Link>
@@ -87,7 +88,7 @@ export default function Navbar() {
                 <Link
                   key={link.name}
                   href={link.href}
-                  className="font-semibold text-xl text-gray-700 hover:text-[#3d2c1d]"
+                  className="font-semibold text-xl text-gray-700 hover:text-[#F0A04B]"
                   onClick={() => setIsMobileMenuOpen(false)} // Tutup menu saat link diklik
                 >
                   {link.name}

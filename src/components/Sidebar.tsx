@@ -11,7 +11,7 @@ const navLinks = [
   { name: 'Pesanan', href: '/admin/orders', icon: ListOrdered },
   { name: 'Menu', href: '/admin/manage-menu', icon: Utensils },
   { name: 'Kategori', href: '/admin/kategori', icon: Tag },
-  { name: 'Metode Bayar', href: '/admin/metode-pembayaran', icon: CreditCard },
+  { name: 'Pembayaran', href: '/admin/metode-pembayaran', icon: CreditCard },
 ];
 
 export default function Sidebar({ isOpen, toggle }: { isOpen: boolean, toggle: () => void }) {

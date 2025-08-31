@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect, FormEvent } from "react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 type Kategori = {
   id: number;
@@ -10,20 +13,28 @@ type Kategori = {
 export default function KategoriPage() {
   const [kategoriList, setKategoriList] = useState<Kategori[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [namaKategoriBaru, setNamaKategoriBaru] = useState("");
+  const [isModalOpen, setModalOpen] = useState(false);
   const [editingKategori, setEditingKategori] = useState<Kategori | null>(null);
+  const [namaKategori, setNamaKategori] = useState("");
 
   const fetchKategori = async () => {
     setIsLoading(true);
     const response = await fetch("/api/kategori");
-    const data = await response.json();
-    setKategoriList(data);
+    if (response.ok) {
+        setKategoriList(await response.json());
+    }
     setIsLoading(false);
   };
 
   useEffect(() => {
     fetchKategori();
   }, []);
+
+  const handleOpenModal = (kategori: Kategori | null) => {
+    setEditingKategori(kategori);
+    setNamaKategori(kategori ? kategori.nama_kategori : "");
+    setModalOpen(true);
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -33,75 +44,82 @@ export default function KategoriPage() {
     await fetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nama_kategori: namaKategoriBaru }),
+      body: JSON.stringify({ nama_kategori: namaKategori }),
     });
     
-    setNamaKategoriBaru("");
-    setEditingKategori(null);
-    fetchKategori();
+    setModalOpen(false);
+    await fetchKategori();
   };
   
-  const handleEdit = (kategori: Kategori) => {
-    setEditingKategori(kategori);
-    setNamaKategoriBaru(kategori.nama_kategori);
-  };
-
   const handleDelete = async (id: number) => {
-    if (confirm("Yakin mau hapus kategori ini? Produk yang menggunakan kategori ini akan kehilangan kategorinya.")) {
-      await fetch(`/api/kategori/${id}`, { method: 'DELETE' });
-      fetchKategori();
+    if (confirm("Yakin mau hapus kategori ini?")) {
+      const res = await fetch(`/api/kategori/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        alert("Gagal menghapus: Kategori mungkin masih digunakan oleh produk.");
+      }
+      await fetchKategori();
     }
   };
 
-  if (isLoading) return <p className="p-8">Memuat data...</p>;
+  
 
   return (
-    <main className="container mx-auto p-8">
-      <h1 className="text-4xl font-bold mb-6">Kelola Kategori Menu</h1>
-
-      <form onSubmit={handleSubmit} className="mb-8 p-4 border rounded-lg max-w-md">
-        <h2 className="text-xl font-semibold mb-2">{editingKategori ? 'Edit Kategori' : 'Tambah Kategori Baru'}</h2>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={namaKategoriBaru}
-            onChange={(e) => setNamaKategoriBaru(e.target.value)}
-            placeholder="Contoh: Makanan Penutup"
-            className="p-2 border rounded w-full"
-            required
-          />
-          <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-            {editingKategori ? 'Update' : 'Tambah'}
-          </button>
-          {editingKategori && (
-            <button type="button" onClick={() => { setEditingKategori(null); setNamaKategoriBaru(""); }} className="bg-gray-500 text-white px-4 py-2 rounded">
-              Batal
-            </button>
-          )}
+    <div>
+        <div className="flex justify-between items-center mb-6">
+            <h1 className="text-3xl font-bold">Kelola Kategori</h1>
+            <Button onClick={() => handleOpenModal(null)}>+ Tambah Kategori</Button>
         </div>
-      </form>
 
-      <table className="min-w-full bg-white border">
-        <thead>
-          <tr className="bg-gray-100 text-left">
-            <th className="p-3">ID</th>
-            <th className="p-3">Nama Kategori</th>
-            <th className="p-3">Aksi</th>
-          </tr>
-        </thead>
-        <tbody>
-          {kategoriList.map((kategori) => (
-            <tr key={kategori.id} className="border-b">
-              <td className="p-3">{kategori.id}</td>
-              <td className="p-3">{kategori.nama_kategori}</td>
-              <td className="p-3 flex gap-2">
-                <button onClick={() => handleEdit(kategori)} className="bg-yellow-500 text-white px-3 py-1 rounded">Edit</button>
-                <button onClick={() => handleDelete(kategori.id)} className="bg-red-500 text-white px-3 py-1 rounded">Delete</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </main>
+        {/* Modal untuk Tambah/Edit */}
+        <Dialog open={isModalOpen} onOpenChange={setModalOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>{editingKategori ? 'Edit Kategori' : 'Tambah Kategori Baru'}</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="py-4">
+                    <Input
+                        value={namaKategori}
+                        onChange={(e) => setNamaKategori(e.target.value)}
+                        placeholder="Nama Kategori"
+                        required
+                    />
+                    <div className="flex justify-end mt-4">
+                        <Button type="submit">Simpan</Button>
+                    </div>
+                </form>
+            </DialogContent>
+        </Dialog>
+
+        {/* Tabel Daftar Kategori */}
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                    <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Kategori</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                    {isLoading ? (
+                        <tr>
+                            <td colSpan={3} className="text-center py-4">Memuat data...</td>
+                        </tr>
+                    ) : (
+                        kategoriList.map((kategori) => (
+                            <tr key={kategori.id}>
+                                <td className="px-6 py-4">{kategori.id}</td>
+                                <td className="px-6 py-4 font-medium">{kategori.nama_kategori}</td>
+                                <td className="px-6 py-4 text-right space-x-2">
+                                    <Button variant="outline" size="sm" onClick={() => handleOpenModal(kategori)}>Edit</Button>
+                                    <Button variant="destructive" size="sm" onClick={() => handleDelete(kategori.id)}>Hapus</Button>
+                                </td>
+                            </tr>
+                        ))
+                    )}
+                </tbody>
+            </table>
+        </div>
+    </div>
   );
 }

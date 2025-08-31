@@ -9,10 +9,20 @@ import Providers from "@/components/Providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
+
 export const metadata: Metadata = {
-  title: "Aplikasi Jualan Makanan",
-  description: "Dibuat dengan Next.js dan cinta",
-};
+  title: 'Ayam Goreng Suharti Cipaganti | Resep Warisan Sejak 1972',
+  description: 'Nikmati kelezatan otentik Ayam Goreng Kremes Suharti. Dibuat dengan resep warisan sejak 1972, menggunakan bahan-bahan segar pilihan. Pesan sekarang!',
+  keywords: ['ayam goreng suharti', 'ayam kremes', 'restoran yogyakarta', 'kuliner legendaris'],
+  openGraph: {
+    title: 'Ayam Goreng Suharti Cipaganti | Resep Warisan Sejak 1972',
+    description: 'Renyahnya tak tertandingi, pedasnya bikin nagih. Cicipi langsung legenda kuliner Indonesia di Ayam Goreng Suharti!',
+  },
+  icons: {
+    // Tambahkan "?v=2" untuk memaksa browser download ulang
+    icon: '/favicon.ico?v=2', 
+  }
+}
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

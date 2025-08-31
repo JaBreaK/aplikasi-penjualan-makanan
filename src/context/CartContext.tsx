@@ -83,16 +83,25 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const closeCart = () => setIsCartOpen(false);
 
   const addToCart = (itemToAdd: Omit<CartItem, 'jumlah'>) => {
+    // Simpan kondisi keranjang SEBELUM item baru ditambahkan
+    const isFirstItemInCart = cartItems.length === 0;
+
     setCartItems(prevItems => {
-        const existingItem = prevItems.find(item => item.id === itemToAdd.id);
-        if (existingItem) {
-            return prevItems.map(item =>
-                item.id === itemToAdd.id ? { ...item, jumlah: item.jumlah + 1 } : item
-            );
-        }
-        return [...prevItems, { ...itemToAdd, jumlah: 1 }];
+      const existingItem = prevItems.find(item => item.id === itemToAdd.id);
+      if (existingItem) {
+        // Jika item sudah ada, tambah jumlahnya
+        return prevItems.map(item =>
+          item.id === itemToAdd.id ? { ...item, jumlah: item.jumlah + 1 } : item
+        );
+      }
+      // Jika item baru, tambahkan ke keranjang dengan jumlah 1
+      return [...prevItems, { ...itemToAdd, jumlah: 1 }];
     });
-    openCart(); 
+    
+    // Buka keranjang HANYA jika ini adalah item pertama yang ditambahkan
+    if (isFirstItemInCart) {
+      openCart();
+    }
   };
   
   const removeFromCart = (itemId: number, removeOne: boolean = false) => {

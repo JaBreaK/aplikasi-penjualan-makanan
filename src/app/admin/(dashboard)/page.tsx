@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { DollarSign, ShoppingCart, Star } from "lucide-react";
+import SalesChart from "@/components/admin/SalesChart";
 
 type Stats = {
   pendapatanHariIni: number;
@@ -63,6 +64,10 @@ export default function AdminDashboardPage() {
           value={stats.menuTerlaris}
           colorClass="#ca8a04"
         />
+      </div>
+      {/* Grafik Penjualan */}
+      <div className="mt-8">
+        <SalesChart />
       </div>
     </main>
   );

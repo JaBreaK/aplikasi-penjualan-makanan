@@ -4,6 +4,7 @@ import { useState, ReactNode } from "react";
 import Sidebar from "@/components/Sidebar"; // <-- Import sidebar
 import { Menu } from 'lucide-react';
 
+
 export default function AdminDashboardLayout({ children }: { children: ReactNode }) {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const toggleSidebar = () => setSidebarOpen(!isSidebarOpen);
