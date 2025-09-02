@@ -28,14 +28,13 @@ export default function SuhartiLandingPageExtended() {
       <section className="relative h-screen flex justify-center items-center text-white text-center p-5 overflow-hidden">
         <div className="absolute inset-0 z-0 brightness-50">
            {/* Ganti dengan video pendek suasana restoran atau proses masak */}
-           <video
-            className="w-full h-full object-cover"
-            src="https://videos.pexels.com/video-files/853865/853865-hd_1920_1080_25fps.mp4"
-            autoPlay
-            loop
-            muted
-            playsInline
-          ></video>
+           <Image
+            className="object-cover w-full h-full"
+            width={1920}
+            height={1080}
+            src="/menu/ayam.jpg"
+            alt="Video Background"
+          ></Image>
         </div>
         <motion.div 
   className="relative z-10 flex flex-col items-center" // Tambahkan flexbox

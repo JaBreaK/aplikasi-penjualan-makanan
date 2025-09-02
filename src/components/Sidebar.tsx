@@ -40,7 +40,7 @@ export default function Sidebar({ isOpen, toggle }: { isOpen: boolean, toggle: (
             <div className="flex items-center justify-between border-b border-gray-700 p-4 h-16">
                 <Link href="/admin" className="flex items-center gap-2 font-semibold text-white">
                     <Image src="/logo.png" alt="Logo" width={90} height={30} />
-                    <span>Admin</span>
+                    
                 </Link>
                 <button onClick={toggle} className="lg:hidden text-white p-2">
                     <X size={24} />
