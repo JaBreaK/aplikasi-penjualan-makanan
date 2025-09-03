@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 
 // Tipe data (bisa diimpor dari file terpusat nanti)
 type Kategori = { id: number; nama_kategori: string; };
@@ -62,8 +63,10 @@ export function MenuForm({ produkToEdit, onSuccess }: MenuFormProps) {
 
         if (response.ok) {
             onSuccess(); // Panggil fungsi onSuccess dari parent
+            toast.success(produkToEdit ? "Menu berhasil diupdate!" : "Menu baru berhasil ditambahkan!");
         } else {
             alert("Gagal menyimpan data.");
+            
         }
         setIsLoading(false);
     };

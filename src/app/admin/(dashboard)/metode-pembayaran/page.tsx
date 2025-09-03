@@ -2,6 +2,7 @@
 
 import { useState, useEffect, FormEvent } from "react";
 import Image from "next/image";
+import { toast } from "sonner";
 
 type Metode = {
   id: number;
@@ -43,10 +44,9 @@ export default function MetodePembayaranPage() {
   }, []);
   
   // Komponen terpisah untuk setiap form metode pembayaran
-  const MetodeForm = ({ metode }: { metode: Metode }) => {
-    const [namaMetode] = useState(metode.nama_metode);
-    const [nomorRekening, setNomorRekening] = useState(metode.nomor_rekening || "");
+  const MetodeForm = ({ metode, onSave }: { metode: Metode, onSave: () => void }) => {
     const [namaRekening, setNamaRekening] = useState(metode.nama_rekening || "");
+    const [nomorRekening, setNomorRekening] = useState(metode.nomor_rekening || "");
     const [gambarQris, setGambarQris] = useState<File | null>(null);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -55,20 +55,30 @@ export default function MetodePembayaranPage() {
         setIsSaving(true);
 
         const formData = new FormData();
-        formData.append('nama_metode', namaMetode);
-        formData.append('nomor_rekening', nomorRekening);
+        formData.append('nama_metode', metode.nama_metode); // Nama metode tidak diubah
         formData.append('nama_rekening', namaRekening);
+        formData.append('nomor_rekening', nomorRekening);
         if (gambarQris) {
             formData.append('gambar_qris', gambarQris);
         }
 
-        await fetch(`/api/metode-pembayaran/${metode.id}`, {
-            method: 'PUT',
-            body: formData,
-        });
-
-        setIsSaving(false);
-        await fetchMetode(); // Muat ulang semua data
+        try {
+            const response = await fetch(`/api/metode-pembayaran/${metode.id}`, {
+                method: 'PUT',
+                body: formData,
+            });
+            if (!response.ok) throw new Error("Gagal menyimpan perubahan.");
+            
+            toast.success(`Metode "${metode.nama_metode}" berhasil diupdate.`);
+            onSave(); // Panggil fungsi onSave untuk refresh data
+        
+          } catch (error: unknown) { // <-- Ganti ke unknown
+            if (error instanceof Error) {
+                toast.error("Gagal menyimpan", { description: error.message });
+            }
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const isQris = metode.nama_metode.toLowerCase().includes('qris');
@@ -121,11 +131,11 @@ export default function MetodePembayaranPage() {
   if (isLoading) return <p className="p-8">Memuat data...</p>;
 
   return (
-    <main className="container mx-auto p-8">
-      <h1 className="text-4xl font-bold mb-6">Kelola Detail Metode Pembayaran</h1>
+    <main>
+      <h1 className="text-3xl font-bold mb-6">Kelola Detail Metode Pembayaran</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {metodeList.map((metode) => (
-          <MetodeForm key={metode.id} metode={metode} />
+          <MetodeForm key={metode.id} metode={metode} onSave={fetchMetode} />
         ))}
       </div>
     </main>

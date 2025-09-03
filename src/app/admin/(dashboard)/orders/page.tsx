@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { orders_status_pembayaran, orders_status_pesanan } from "@prisma/client";
 import { MessageSquare, RefreshCw, X, Check, Printer, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
 // Tipe data (sama seperti yang dikirimkan user, ditahan agar kompatibel)
 type Produk = { nama_produk: string };
@@ -63,7 +64,7 @@ export default function OrdersPage() {
   });
 
   // Simple toast
-  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  const [toast1, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
   const showToast = (msg: string, type: "success" | "error" = "success") => {
     setToast({ msg, type });
@@ -132,34 +133,38 @@ export default function OrdersPage() {
   const handleUpdateStatus = async (orderId: number, newStatus: orders_status_pembayaran, keterangan?: string) => {
     try {
       const response = await fetch(`/api/orders/${orderId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status_pembayaran: newStatus, keterangan_batal: keterangan }),
       });
-      if (!response.ok) throw new Error("Gagal update");
+      if (!response.ok) throw new Error("Gagal mengupdate status.");
+      
+      toast.success(`Status pesanan #${orderId} diubah menjadi ${newStatus.replace('_', ' ')}`);
       await fetchOrders();
-      showToast("Status berhasil diperbarui", "success");
-    } catch (err: unknown) {
-      console.error(err);
-      if (err instanceof Error) showToast(err.message, "error");
-      else showToast("Terjadi kesalahan saat memperbarui status", "error");
-    }
+      
+    } catch (error: unknown) { // <-- Ganti ke unknown
+      if (error instanceof Error) {
+          toast.error("Gagal Update Status Dapur", { description: error.message });
+      }
+  }
   };
 
   const handleUpdateStatusPesanan = async (orderId: number, newStatus: orders_status_pesanan) => {
     try {
       const response = await fetch(`/api/orders/${orderId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status_pesanan: newStatus }),
       });
-      if (!response.ok) throw new Error("Gagal update status pesanan");
+       if (!response.ok) throw new Error("Gagal mengupdate status pesanan.");
+
+      toast.success(`Status dapur untuk pesanan #${orderId} diubah menjadi ${newStatus.replace('_', ' ')}`);
       await fetchOrders();
-      showToast("Status pesanan diperbarui", "success");
-    } catch (error) {
-      console.error("Error updating order status:", error);
-      showToast("Terjadi kesalahan saat mengupdate status pesanan.", "error");
-    }
+    } catch (error: unknown) { // <-- Ganti ke unknown
+      if (error instanceof Error) {
+          toast.error("Gagal Update Status Dapur", { description: error.message });
+      }
+  }
   };
 
   const openCancelModal = (orderId: number) => {
@@ -541,9 +546,9 @@ export default function OrdersPage() {
 
       {/* Toast sederhana */}
       <AnimatePresence>
-        {toast && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className={`fixed right-6 bottom-6 z-50 p-3 rounded shadow ${toast.type === "success" ? "bg-green-600 text-white" : "bg-red-600 text-white"}`}>
-            {toast.msg}
+        {toast1 && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className={`fixed right-6 bottom-6 z-50 p-3 rounded shadow ${toast1.type === "success" ? "bg-green-600 text-white" : "bg-red-600 text-white"}`}>
+            {toast1.msg}
           </motion.div>
         )}
       </AnimatePresence>

@@ -6,6 +6,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { MenuForm } from "@/components/admin/MenuForm"; // Komponen form yang akan kita buat
 import Image from "next/image";
 
+import { toast } from "sonner";
+
 // Definisikan tipe data
 type Produk = {
     id: number;
@@ -18,19 +20,7 @@ type Produk = {
   };
 
   // Komponen kecil untuk skeleton loader tabel
-const TableSkeleton = () => (
-    <>
-      {Array.from({ length: 5 }).map((_, i) => (
-        <tr key={i}>
-          <td className="px-6 py-4"><div className="h-10 w-10 bg-gray-200 rounded-md animate-pulse"></div></td>
-          <td className="px-6 py-4"><div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse"></div></td>
-          <td className="px-6 py-4"><div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse"></div></td>
-          <td className="px-6 py-4"><div className="h-4 w-1/4 bg-gray-200 rounded animate-pulse"></div></td>
-          <td className="px-6 py-4 text-right"><div className="h-8 w-16 bg-gray-200 rounded animate-pulse ml-auto"></div></td>
-        </tr>
-      ))}
-    </>
-  );
+
   
 
 export default function ManageMenuPage() {
@@ -62,18 +52,35 @@ export default function ManageMenuPage() {
   // FUNGSI BARU UNTUK MENGHAPUS PRODUK
   const handleDelete = async (produkId: number) => {
     if (confirm("Apakah kamu yakin ingin menghapus menu ini?")) {
-        const response = await fetch(`/api/menu/${produkId}`, {
-            method: 'DELETE',
-        });
+        try {
+            const response = await fetch(`/api/menu/${produkId}`, {
+                method: 'DELETE',
+            });
 
-        if (response.ok) {
-            alert("Menu berhasil dihapus.");
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Gagal menghapus menu.");
+            }
+
+            toast.success("Menu berhasil dihapus.");
             fetchProduk(); // Muat ulang data setelah berhasil hapus
-        } else {
-            alert("Gagal menghapus menu.");
+
+          } catch (error: unknown) { // <-- Ganti ke unknown
+            if (error instanceof Error) {
+                toast.error("Gagal menghapus menu.", { description: error.message });
+            }
         }
     }
   };
+  if (isLoading) {
+    // Tampilkan skeleton loader yang sesuai
+    return (
+        <div className="p-4">
+            <h1 className="text-3xl font-bold mb-6">Kelola Menu</h1>
+            <div className="h-10 w-full bg-gray-200 rounded animate-pulse"></div>
+        </div>
+    );
+  }
 
   return (
     <div>
@@ -95,47 +102,64 @@ export default function ManageMenuPage() {
         </Dialog>
       </div>
 
-      {/* Tabel Daftar Produk */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium">Gambar</th>
-              <th className="px-6 py-3 text-left text-xs font-medium">Nama Produk</th>
-              <th className="px-6 py-3 text-left text-xs font-medium">Kategori</th>
-              <th className="px-6 py-3 text-left text-xs font-medium">Harga</th>
-              <th className="px-6 py-3 text-right text-xs font-medium">Aksi</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {/* ================================== */}
-            {/* == PERBAIKAN ADA DI BLOK INI == */}
-            {/* ================================== */}
-            {isLoading ? (
-              <TableSkeleton />
-            ) : (
-              produkList.map(produk => (
-                <tr key={produk.id}>
-                  <td className="px-6 py-4">
-                    {produk.gambar_url && <Image src={produk.gambar_url} alt={produk.nama_produk} width={40} height={40} className="rounded-md object-cover"/>}
-                  </td>
-                  <td className="px-6 py-4 font-medium">{produk.nama_produk}</td>
-                  <td className="px-6 py-4">{produk.kategori?.nama_kategori}</td>
-                  <td className="px-6 py-4">Rp {produk.harga.toLocaleString('id-ID')}</td>
-                  <td className="px-6 py-4 text-right">
-                    <Button variant="outline" size="sm" onClick={() => { setEditingProduk(produk); setModalOpen(true); }}>
-                      Edit
-                    </Button>
-                    {/* TOMBOL HAPUS BARU DI SINI */}
-                    <Button variant="destructive" size="sm" onClick={() => handleDelete(produk.id)}>
+        {/* ================================== */}
+        {/* == TAMPILAN TABEL UNTUK DESKTOP == */}
+        {/* ================================== */}
+        <div className="hidden md:block">
+            <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium">Gambar</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium">Nama Produk</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium">Kategori</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium">Harga</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {produkList.map(produk => (
+                  <tr key={produk.id}>
+                    <td className="px-6 py-4">
+                      {produk.gambar_url && <Image src={produk.gambar_url} alt={produk.nama_produk} width={40} height={40} className="rounded-md object-cover"/>}
+                    </td>
+                    <td className="px-6 py-4 font-medium">{produk.nama_produk}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{produk.kategori?.nama_kategori}</td>
+                    <td className="px-6 py-4">Rp {produk.harga.toLocaleString('id-ID')}</td>
+                    <td className="px-6 py-4 text-right space-x-2">
+                      <Button variant="outline" size="sm" onClick={() => { setEditingProduk(produk); setModalOpen(true); }}>Edit</Button>
+                      <Button variant="destructive" size="sm" onClick={() => handleDelete(produk.id)}>
                       Hapus
                     </Button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+        </div>
+
+        {/* ================================= */}
+        {/* == TAMPILAN KARTU UNTUK MOBILE == */}
+        {/* ================================= */}
+        <div className="md:hidden divide-y divide-gray-200">
+            {produkList.map(produk => (
+                <div key={produk.id} className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        {produk.gambar_url && <Image src={produk.gambar_url} alt={produk.nama_produk} width={48} height={48} className="rounded-md object-cover"/>}
+                        <div>
+                            <p className="font-semibold">{produk.nama_produk}</p>
+                            <p className="text-sm text-gray-500">Rp {produk.harga.toLocaleString('id-ID')}</p>
+                        </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <Button variant="outline" size="sm" onClick={() => { setEditingProduk(produk); setModalOpen(true); }}>Edit</Button>
+                        <Button variant="destructive" size="sm" onClick={() => handleDelete(produk.id)}>
+                      Hapus
+                    </Button>
+                    </div>
+                </div>
+            ))}
+        </div>
       </div>
     </div>
   );

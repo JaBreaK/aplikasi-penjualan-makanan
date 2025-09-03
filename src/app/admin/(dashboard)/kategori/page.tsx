@@ -4,6 +4,7 @@ import { useState, useEffect, FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 type Kategori = {
   id: number;
@@ -41,23 +42,41 @@ export default function KategoriPage() {
     const url = editingKategori ? `/api/kategori/${editingKategori.id}` : "/api/kategori";
     const method = editingKategori ? "PUT" : "POST";
     
-    await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nama_kategori: namaKategori }),
-    });
-    
-    setModalOpen(false);
-    await fetchKategori();
+    try {
+        const response = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nama_kategori: namaKategori }),
+        });
+        if (!response.ok) throw new Error("Gagal menyimpan data.");
+
+        toast.success(editingKategori ? "Kategori berhasil diupdate!" : "Kategori berhasil ditambahkan!");
+        setModalOpen(false);
+        await fetchKategori();
+
+      } catch (error: unknown) { // <-- Ganti ke unknown
+        if (error instanceof Error) {
+            toast.error("Gagal menyimpan", { description: error.message });
+        }
+    }
   };
   
   const handleDelete = async (id: number) => {
     if (confirm("Yakin mau hapus kategori ini?")) {
-      const res = await fetch(`/api/kategori/${id}`, { method: 'DELETE' });
-      if (!res.ok) {
-        alert("Gagal menghapus: Kategori mungkin masih digunakan oleh produk.");
+      try {
+        const res = await fetch(`/api/kategori/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.message || "Gagal menghapus kategori.");
+        }
+        toast.success("Kategori berhasil dihapus.");
+        await fetchKategori();
+
+      } catch (error: unknown) { // <-- Ganti ke unknown
+        if (error instanceof Error) {
+            toast.error("Gagal menghapus", { description: error.message });
+        }
       }
-      await fetchKategori();
     }
   };
 

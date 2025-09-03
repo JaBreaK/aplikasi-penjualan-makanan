@@ -6,6 +6,7 @@ import { CartProvider } from "@/context/CartContext";
 import CartSidebar from "@/components/CartSidebar";
 import { ReactNode } from "react";
 import Providers from "@/components/Providers";
+import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <CartSidebar />
           </CartProvider>
         </Providers>
+        <Toaster richColors />
       </body>
     </html>
   );
