@@ -48,7 +48,7 @@ export default function CartSidebar() {
             transition={{ type: "tween", ease: "easeInOut", duration: 0.3 }}
           >
             <div className="flex justify-between items-center p-4 border-b">
-              <h2 className="text-xl font-bold">Pesanan Anda</h2>
+              <h2 className="text-xl font-bold">Keranjang</h2>
               <button
                 onClick={closeCart}
                 className="p-2 rounded-full hover:bg-gray-100"

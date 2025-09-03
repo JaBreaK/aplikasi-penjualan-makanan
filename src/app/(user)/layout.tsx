@@ -4,6 +4,7 @@
 import { useCart } from "@/context/CartContext";
 import Navbar from "@/components/Navbar";
 import { ReactNode } from "react";
+import Footer from "@/components/Footer";
 
 
 export default function UserLayout({ children }: { children: ReactNode }) {
@@ -15,6 +16,8 @@ export default function UserLayout({ children }: { children: ReactNode }) {
     >
       <Navbar />
       {children}
+      <Footer />
     </div>
+    
   )
 }
