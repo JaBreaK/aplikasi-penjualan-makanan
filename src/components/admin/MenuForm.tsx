@@ -33,17 +33,22 @@ export function MenuForm({ produkToEdit, onSuccess }: MenuFormProps) {
         fetchKategori();
     }, []);
 
+    // --- PERBAIKAN LOGIKA ADA DI SINI ---
     useEffect(() => {
-        if (produkToEdit) {
+        // Hanya isi form jika produkToEdit ada DAN daftar kategori sudah terisi
+        if (produkToEdit && kategoriList.length > 0) {
             setNamaProduk(produkToEdit.nama_produk);
             setDeskripsi(produkToEdit.deskripsi || "");
             setHarga(produkToEdit.harga.toString());
             setKategoriId(produkToEdit.kategori_id.toString());
-        } else {
-            // Reset form jika mode "Tambah"
-            setNamaProduk(""); setDeskripsi(""); setHarga(""); setKategoriId("");
+        } else if (!produkToEdit) {
+            // Reset form jika ini adalah mode "Tambah Menu Baru"
+            setNamaProduk(""); 
+            setDeskripsi(""); 
+            setHarga(""); 
+            setKategoriId("");
         }
-    }, [produkToEdit]);
+    }, [produkToEdit, kategoriList]);
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
