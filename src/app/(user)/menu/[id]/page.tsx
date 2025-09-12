@@ -73,7 +73,7 @@ export default async function ProdukDetailPage({ params }: Props) {
                     </p>
                     
                     {/* Nanti tombol ini bisa kita buat fungsional */}
-                    <button className="w-full bg-[#3d2c1d] text-white font-bold py-3 px-4 rounded hover:bg-black">
+                    <button className="w-full bg-[#F0A04B] rounded-full text-white font-bold py-3 px-4 rounded hover:bg-black">
                         Tambah ke Keranjang
                     </button>
                 </div>

@@ -81,19 +81,31 @@ export default function MenuPage() {
             ) : (
               <>
                 <button
-                  onClick={() => setFilterKategoriId(null)}
-                  className={`px-5 py-2 rounded-full font-semibold text-sm md:text-base transition-all duration-300 ${filterKategoriId === null ? 'bg-[#F0A04B] text-white shadow-lg' : 'bg-white text-gray-700 hover:bg-gray-200'}`}
-                >
-                  Semua
-                </button>
+  onClick={() => setFilterKategoriId(null)}
+  className={`px-5 py-2 rounded-full font-semibold text-sm md:text-base transition-all duration-300
+    ${
+      filterKategoriId === null
+        ? 'text-white shadow-lg bg-gradient-to-r from-orange-500 via-amber-600 to-orange-700 bg-[length:200%_200%] animate-gradient'
+        : 'bg-white text-gray-700 hover:bg-gradient-to-r hover:from-orange-500 hover:via-amber-600 hover:to-orange-700 hover:text-white'
+    }`}
+>
+  Semua
+</button>
+
                 {kategoriList.map((kategori) => (
                   <button
-                    key={kategori.id}
-                    onClick={() => setFilterKategoriId(kategori.id)}
-                    className={`px-5 py-2 rounded-full font-semibold text-sm md:text-base transition-all duration-300 ${filterKategoriId === kategori.id ? 'bg-[#F0A04B] text-white shadow-lg' : 'bg-white text-gray-700 hover:bg-gray-200'}`}
-                  >
-                    {kategori.nama_kategori}
-                  </button>
+                  key={kategori.id}
+                  onClick={() => setFilterKategoriId(kategori.id)}
+                  className={`px-5 py-2 rounded-full font-semibold text-sm md:text-base transition-all duration-300
+                    ${
+                      filterKategoriId === kategori.id
+                        ? 'text-white shadow-lg bg-gradient-to-r from-orange-500 via-amber-600 to-orange-700 bg-[length:200%_200%] animate-gradient'
+                        : 'bg-white text-gray-700 hover:bg-gradient-to-r hover:from-orange-500 hover:via-amber-600 hover:to-orange-700 hover:text-white'
+                    }`}
+                >
+                  {kategori.nama_kategori}
+                </button>
+                
                 ))}
               </>
             )}
@@ -106,7 +118,7 @@ export default function MenuPage() {
             </div>
           ) : (
             <motion.div
-              className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8"
+              className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-6 md:gap-8"
               variants={containerVariants}
               initial="hidden"
               animate="visible"
@@ -133,6 +145,10 @@ export default function MenuPage() {
                     <div className="p-4 md:p-6 flex-grow flex flex-col">
                       <div className="flex-grow">
                         <h3 className="text-md md:text-xl font-bold mb-2 h-12">{item.nama_produk}</h3>
+                        <p className="text-gray-600 leading-relaxed mb-8 line-clamp-2">
+  {item.deskripsi}
+</p>
+
                         <p className="text-lg font-semibold text-blue-600 mb-4">
                           Rp {item.harga.toLocaleString('id-ID')}
                         </p>
@@ -145,10 +161,20 @@ export default function MenuPage() {
                             <button onClick={() => addToCart(item)} className="px-3 py-2 text-lg font-bold text-gray-700 hover:bg-gray-200"><Plus size={16} /></button>
                           </div>
                         ) : (
-                          <button onClick={() => addToCart(item)} className="w-full bg-[#F0A04B] text-white font-bold py-2 px-4 rounded hover:bg-black transition-transform hover:scale-105 flex items-center justify-center gap-2">
-                            <span>Tambah</span>
-                            <ShoppingCart className="w-5 h-5" />
-                          </button>
+                          <button
+  onClick={() => addToCart(item)}
+  className="w-full rounded-full text-white font-bold px-5 py-2 
+             bg-gradient-to-r from-orange-500 via-amber-600 to-orange-700 
+             bg-[length:200%_200%] animate-gradient 
+             hover:from-orange-600 hover:via-amber-700 hover:to-orange-800 
+             transition-transform hover:scale-105 
+             flex items-center justify-center gap-2"
+>
+  <span>Tambah</span>
+  <ShoppingCart className="w-5 h-5" />
+</button>
+
+
                         )}
                       </div>
                     </div>

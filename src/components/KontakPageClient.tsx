@@ -6,7 +6,7 @@ import { MapPin, Phone} from 'lucide-react';
 
 export default function KontakPageClient() {
   return (
-    <main className="bg-white">
+    <main className="bg-gradient-to-b from-white via-orange-50 to-white">
       <div className="container mx-auto px-6 py-16 md:py-24">
         {/* Judul Section */}
         <motion.div 
